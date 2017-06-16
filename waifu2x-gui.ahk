@@ -145,7 +145,7 @@ Gui,2:Add, Radio, x10 y132 w160 h14 Checked, %L_Denoise_Scale%
 ;Gui,2:Add, Radio, x10 y154 w160 h14 vConvMode4, Denoise(autodetect) and scale
 Gui,2:Add, GroupBox, x5 y155 w180 h40, %L_Model%
 Model_List:=""
-Model_Default:=""
+Model_Default:=1
 Loop, Files, models/* ,D
 {
     If (Model_List = "")
