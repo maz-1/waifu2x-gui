@@ -1,5 +1,5 @@
 #NoTrayIcon
-#singleinstance,force
+#SingleInstance force
 
 #include stdout2var.ahk
 #Include Gdip.ahk
@@ -8,16 +8,14 @@ title1=Waifu2x-CPP GUI By Maz-1 (maz_1@foxmail.com)
 StringCaseSense, Off
 SetFormat, Float, 0.2
 WPath = %A_ScriptDir%
-If (A_PtrSize = 8)
-  Exename = waifu2x-converter_x64.exe
-Else
-  Exename = waifu2x-converter_x86.exe
+Waifu2x_Exe = waifu2x-converter-cpp.exe
+Magick_Exe = magick.exe
 
 SetWorkingDir %WPath%
 
 HideCMD = Hide
 
-FTypeInit = png,jpg,jpeg,tif,tiff,bmp,tga
+FTypeInit = png,jpg,jpeg,jfif,tif,tiff,bmp,tga
 
 GDIPToken := Gdip_Startup()
 
@@ -76,8 +74,19 @@ L_OK := "OK"
 L_Cancel := "Cancel"
 L_NotFound := "not found"
 L_NotValidDir := "Not a valid directory"
+L_Type:="Type"
+L_Name:="Name"
+L_SelProc:="Select processor"
+L_ManualProc:="Manually specify processor"
+L_SelProc:="Select processor"
+L_SelProcInfo:="Click to manually specify processor"
+L_NoItemSelected:="No item selected"
+L_AutoProc:="Select processor automatically"
+L_Font:="Tahoma"
 
+FileEncoding ,UTF-8
 FileRead, I18N, %A_ScriptDir%\i18n.ini
+
 InTargetSection := false
 Loop, Parse, I18N,`r,`n
 {
@@ -101,34 +110,39 @@ Loop, Parse, I18N,`r,`n
 	  }
 }
 
-If !FileExist(WPath "\" Exename)
+If !FileExist(WPath "\" Waifu2x_Exe)
 {
-  Msgbox, ,%L_Error%, %Exename% %L_NotFound%
+  Msgbox, ,%L_Error%, %Waifu2x_Exe% %L_NotFound%
+  exitapp
+}
+If !FileExist(WPath "\" Magick_Exe)
+{
+  Msgbox, ,%L_Error%, %Magick_Exe% %L_NotFound%
   exitapp
 }
 
 w_width  = 600
-w_height = 220
+w_height = 224
 w_x := (A_ScreenWidth - w_width)/5
 w_y := (A_ScreenHeight - w_height)/2
-Gui,2: Font, s8, Tahoma
-;Gui,2:+ToolWindow
-Gui,2:+HwndMyGuiHwnd
+Gui,Main: Font, s8, %L_Font%
+;Gui,Main:+ToolWindow
+Gui,Main:+HwndMainGuiHwnd
 ;-=-=-=-=-=-=-=-=-=
 WM_DROPFILES := 0x0233
 WS_EX_ACCEPTFILES := 0x10
 ;-=-=-=-=-=-=-=-=-=
-Gui,2:Add, Tab2, x0 y0 w0 h0 -Wrap vVTab, OneTab
-Gui,2:Tab, OneTab
-Gui,2:Add, Text, x5 y12 w60 h30 Center, %L_InPath%
-Gui,2:Add, Edit, % "HwndHInPath r1 vInPath x70 y10 h30 w" w_width-120 " +E" WS_EX_ACCEPTFILES, %fName%
-Gui,2:add,Button, % "vInPathBtn gSelectInPath y9 w30 h23 x" w_width - 40 , ...
+Gui,Main:Add, Tab2, x0 y0 w0 h0 -Wrap vVTab, OneTab
+Gui,Main:Tab, OneTab
+Gui,Main:Add, Text, x5 y12 w60 h30 Center, %L_InPath%
+Gui,Main:Add, Edit, % "HwndHInPath r1 vInPath x70 y10 h30 w" w_width-120 " +E" WS_EX_ACCEPTFILES, %fName%
+Gui,Main:add,Button, % "vInPathBtn gSelectInPath y9 w30 h23 x" w_width - 40 , ...
 InPath_TT = %L_InPathTip%
 InPathBtn_TT = %L_InPathBtnTip%
 ;-=-=-=-=-=-=-=-=-=
-Gui,2:Add, Text, x5 y47 w60 h15 Center, %L_OutPath%
-Gui,2:Add, Edit, % "HwndHOutPath r1 vOutPath x70 y45 h30 w" w_width-120 " +E" WS_EX_ACCEPTFILES, %DirInit%
-Gui,2:add,Button, % "gSelectOutPath y44 w30 h23 x" w_width - 40 , ...
+Gui,Main:Add, Text, x5 y47 w60 h15 Center, %L_OutPath%
+Gui,Main:Add, Edit, % "HwndHOutPath r1 vOutPath x70 y45 h30 w" w_width-120 " +E" WS_EX_ACCEPTFILES, %DirInit%
+Gui,Main:add,Button, % "gSelectOutPath y44 w30 h23 x" w_width - 40 , ...
 OutPath_TT = %L_OutPathTip%
 ;-=-=-=-=-=-=-=-=-=
 BusyCur:=DllCall("LoadCursor","UInt",NULL,"Int",32514,"UInt") ;IDC_WAIT
@@ -137,15 +151,15 @@ InputIsDir := false
 OnMessage(WM_DROPFILES, "On_WM_DROPFILES")
 OnMessage(0x200, "WM_MOUSEMOVE")
 ;-=-=-=-=-=-=-=-=-=
-Gui,2:Add, GroupBox, x5 y80 w180 h75, %L_ConvMode%
-;Gui,2:Add, GroupBox, x5 y80 w180 h75, %L_ConvMode%
-Gui,2:Add, Radio, x10 y96 w160 h14 vConvMode, %L_Denoise%
-Gui,2:Add, Radio, x10 y114 w160 h14, %L_Scale%
-Gui,2:Add, Radio, x10 y132 w160 h14 Checked, %L_Denoise_Scale%
-;Gui,2:Add, Radio, x10 y154 w160 h14 vConvMode4, Denoise(autodetect) and scale
-Gui,2:Add, GroupBox, x5 y155 w180 h40, %L_Model%
+Gui,Main:Add, GroupBox, x5 y80 w150 h75, %L_ConvMode%
+;Gui,Main:Add, GroupBox, x5 y80 w150 h75, %L_ConvMode%
+Gui,Main:Add, Radio, x10 y96 w130 h14 vConvMode, %L_Denoise%
+Gui,Main:Add, Radio, x10 y114 w130 h14, %L_Scale%
+Gui,Main:Add, Radio, x10 y132 w130 h14 Checked, %L_Denoise_Scale%
+;Gui,Main:Add, Radio, x10 y154 w130 h14 vConvMode4, Denoise(autodetect) and scale
+Gui,Main:Add, GroupBox, x5 y155 w150 h44, %L_Model%
 Model_List:=""
-Model_Default:=""
+Model_Default:=1
 Loop, Files, models/* ,D
 {
     If (Model_List = "")
@@ -156,80 +170,150 @@ Loop, Files, models/* ,D
     If (A_LoopFileName = "models")
       Model_Default:=A_Index
 }
-Gui,2:Add, Combobox, x10 y170 w160 vOutModel Choose%Model_Default%, %Model_List%
+Gui,Main:Add, Combobox, x10 y170 w140 vOutModel Choose%Model_Default%, %Model_List%
 ;-=-=-=-=-=-=-=-=-=
-Gui,2:Add, GroupBox, x190 y80 w125 h35, %L_Denoise_Level%
-;Gui,2:Add, GroupBox, x190 y80 w125 h75, %L_Denoise_Level%
-Gui,2:Add, Radio, x195 y97 w58 h14 vDenoiseLevel Checked, %L_Level% 1
-Gui,2:Add, Radio, x255 y97 w58 h14, %L_Level% 2
-;Gui,2:Add, Radio, x195 y116 w58 h14, %L_Level% 2
+Gui,Main:Add, GroupBox, x160 y80 w125 h35, %L_Denoise_Level%
+;Gui,Main:Add, GroupBox, x160 y80 w125 h75, %L_Denoise_Level%
+Gui,Main:Add, Radio, x165 y97 w58 h14 vDenoiseLevel Checked, %L_Level% 1
+Gui,Main:Add, Radio, x225 y97 w58 h14, %L_Level% 2
+;Gui,Main:Add, Radio, x165 y116 w58 h14, %L_Level% 2
 ;-=-=-=-=-=-=-=-=-=
-Gui,2:Add, GroupBox, x190 y155 w125 h40, %L_OutExt%
-Gui,2:Add, Combobox, x195 y170 w115 vOutExt Choose1, png|jpg|bmp
+Gui,Main:Add, GroupBox, x160 y155 w125 h44, %L_OutExt%
+Gui,Main:Add, Combobox, x165 y170 w115 vOutExt Choose1, png|jpg|bmp|tiff|webp
 ;-=-=-=-=-=-=-=-=-=
-Gui,2:Add, GroupBox, x190 y115 w125 h40, %L_BlkSize%
-Gui,2:Add, Edit, x195 y130 w115 h21 vBLKSize
+Gui,Main:Add, GroupBox, x160 y115 w125 h40, %L_BlkSize%
+Gui,Main:Add, Edit, x165 y130 w115 h18 vBLKSize
 ;-=-=-=-=-=-=-=-=-=
-Gui,2:Add, GroupBox, x320 y80 w115 h115, %L_ProcOpt%
-Gui,2:Add, Checkbox, x325 y97 w100 h20 vDisableGPU, %L_DisableGPU%
-Gui,2:Add, Checkbox, x325 y116 w105 h20 vForceOpenCL, %L_ForceOpenCL%
-Gui,2:Add, Text, x325 y150 w105 h20, %L_Threads%
+Gui,Main:Add, GroupBox, x290 y80 w145 h119, %L_ProcOpt%
+Gui,Main:Add, Checkbox, x295 y97 w130 h20 vDisableGPU, %L_DisableGPU%
+Gui,Main:Add, Checkbox, x295 y116 w135 h20 vForceOpenCL, %L_ForceOpenCL%
+Gui,Main:Add, Button, x294 y135 w137 h35 vSelProcInfoV hwndhBtnProcWin gProcInit, %L_AutoProc%
+SelProcInfoV_TT:=L_SelProcInfo
 EnvGet, ProcessorCount, NUMBER_OF_PROCESSORS
-Gui,2:Add, Edit, x325 y171 w80 h18 vThreads, % ProcessorCount
-Gui,2:Add, UpDown, % "range1-" ProcessorCount, % ProcessorCount
-Gui,2:Add, Button, x410 y170 w20 h20 gViewProcInfo vViewProcInfoV, i
-ViewProcInfoV_TT = %L_ProcInfoTip%
+Gui,Main:Add, Text, x295 y177 w135 h20, %L_Threads%
+Gui,Main:Add, Edit, x335 y175 w95 h18 vThreads, % ProcessorCount
+Gui,Main:Add, UpDown, % "range1-" ProcessorCount, % ProcessorCount
 ;-=-=-=-=-=-=-=-=-=
-Gui,2:Add, GroupBox, x440 y80 w150 h37, %L_ScaleRatio%
-Gui,2:Add, Edit, x445 y95 w110 h18 vScaleRatio, 2
-Gui,2:Add, UpDown, range1-50, 2
-Gui,2:Add, Button, x560 y94 w25 h20 vScaleGenBtn gScaleGen, ...
+Gui,Main:Add, GroupBox, x440 y80 w150 h37, %L_ScaleRatio%
+Gui,Main:Add, Edit, x445 y95 w110 h18 vScaleRatio, 2
+Gui,Main:Add, UpDown, range1-50, 2
+Gui,Main:Add, Button, x560 y94 w25 h20 vScaleGenBtn gScaleGen, ...
 ScaleGenBtn_TT = %L_ScaleGenTip%
 ;-=-=-=-=-=-=-=-=-=
-Gui,2:Add, GroupBox, x440 y117 w150 h40, %L_ProcTheseTypes%
-Gui,2:Add, Edit, x445 y133 w140 h20 vFTypeList, % FTypeInit
+Gui,Main:Add, GroupBox, x440 y117 w150 h40, %L_ProcTheseTypes%
+Gui,Main:Add, Edit, x445 y133 w140 h20 vFTypeList, % FTypeInit
 ;-=-=-=-=-=-=-=-=-=
-Gui,2:Add, Button, x439 y160 w152 h35 gProcess vProcessV, %L_Go%
+Gui,Main:Add, Button, x439 y160 w152 h39 gProcess vProcessV, %L_Go%
 ProcessV_TT = %L_GoTip%
 ;-=-=-=-=-=-=-=-=-=
-Gui,2:Add, StatusBar,, %L_Ready%
+Gui,Main:Add, StatusBar,, %L_Ready%
 ;-=-=-=-=-=-=-=-=-=
-Gui,2:Show, x%w_x% y%w_y% w%w_width% h%w_height%, %title1%
+Gui,Main:Show, x%w_x% y%w_y% w%w_width% h%w_height%, %title1%
 
 RatioCalc =
 restool_w  = 200
 restool_h = 120
 restool_x := (A_ScreenWidth - restool_w)/3
 restool_y := (A_ScreenHeight - restool_h)/2
-ResAvailable = 800x600|1024x768|1280x720|1280x800|1360x768|1366x768|1440x900|1680x1050|1920x1080|1920x1200|1920x1440|2048x1536|2560x1440|4096x2160
-Gui,3: Font, s8, Tahoma
-Gui,3:+ToolWindow
-Gui,3:+Owner2
+ResAvailable = 800x600|1024x768|1280x720|1280x800|1360x768|1366x768|1440x900|1680x1050|1920x1080|1920x1200|1920x1440|2048x1536|2560x1440|3200x1800|4096x2160
+Gui,Res: Font, s8, Tahoma
+Gui,Res:+ToolWindow
+Gui,Res:+OwnerMain
 ;-=-=-=-=-=-=-=-=-=
-Gui,3:Add, Text, x5 y12 w60 h30 Center, %L_Resolution%
-Gui,3:Add, Combobox, % "vResForCalc gResCalc x70 y10 w" restool_w-80, %ResAvailable%
+Gui,Res:Add, Text, x5 y12 w60 h30 Center, %L_Resolution%
+Gui,Res:Add, Combobox, % "vResForCalc gResCalc x70 y10 w" restool_w-80, %ResAvailable%
 Sysget, MonResX, 0
 Sysget, MonResY, 1
-GuiControl, 3:Text, ResForCalc, % MonResX "x" MonResY
-Gui,3:Add, GroupBox, % "x10 y35 h37 w" restool_w-20 , %L_CalcRatio%
-Gui,3:Add, Text, % "vRatioCalcTxt x15 y50 h20 w" restool_w-30 , 0
-Gui,3:Add, Button, x9 y80 w85 h30 gSetRatio, %L_OK%
-Gui,3:Add, Button, % "gCancelRatio y80 w85 h30 x" restool_w-95, %L_Cancel%
+GuiControl, Res:Text, ResForCalc, % MonResX "x" MonResY
+Gui,Res:Add, GroupBox, % "x10 y35 h37 w" restool_w-20 , %L_CalcRatio%
+Gui,Res:Add, Text, % "vRatioCalcTxt x15 y50 h20 w" restool_w-30 , 0
+Gui,Res:Add, Button, x9 y80 w85 h30 gSetRatio, %L_OK%
+Gui,Res:Add, Button, % "gCancelRatio y80 w85 h30 x" restool_w-95, %L_Cancel%
+;-=-=-=-=-=-=-=-=-=-=-=-=
+SelProcNum:=0
+ManualProc:=0
+Gui,Proc: Font, s8, Tahoma
+Gui,Proc:+ToolWindow
+Gui,Proc:+OwnerMain
+Gui,Proc: Add, CheckBox, x5 y5 h14 vManualProcChecked hwndhManualProc -Checked, %L_ManualProc%
+Gui,Proc: Add, ListView, x5 y25 w350 h200 vProcListLV gLVSelect AltSubmit NoSortHdr -Multi -LV0x10, No.|%L_Type%|%L_Name%
+Gui,Proc: Default
+LV_ModifyCol(1, 30)
+LV_ModifyCol(2, 50)
+LV_ModifyCol(3, 265)
+Gui,Proc: Add, Button, x5 y230 w170 h30 gProcOk, %L_OK%
+Gui,Proc: Add, Button, x185 y230 w170 h30 gProcCancel, %L_Cancel%
+;GoSub ProcInit
+Return
+
+ProcInit:
+Gui,Proc: Default
+LV_Delete()
+ProcessorsCmdOut:=StdOutStream(Waifu2x_Exe " --list-processor")
+Loop, Parse, ProcessorsCmdOut,`r,`n
+{
+  RegExMatch(A_LoopField, "O)^\s{3}(\d):\s+(.*?)\s+\((\S+)\s*\):\snum_core=(\d+)$" , OutputVar)
+  If (OutputVar.Value(1) <> "")
+    LV_Add( ,OutputVar.Value(1), OutputVar.Value(3), OutputVar.Value(2))
+}
+Gui,Main: Default
+Control, uncheck,,, ahk_id %hManualProc%
+Gui,Proc: Show, ,%L_SelProc%
+Return
+
+LVSelect:
+Gui,Proc: Submit, nohide
+If (LV_GetNext(0)<>0)
+Control, check,,, ahk_id %hManualProc%
+Return
+
+ProcOk:
+Gui,Proc: Submit, nohide
+Gui,Proc: Default
+RowNum:=LV_GetNext(0)
+LV_GetText(ProcNum, RowNum, 1)
+LV_GetText(ProcType, RowNum, 2)
+LV_GetText(ProcName, RowNum, 3)
+ManualProc:=ManualProcChecked
+If (ManualProc=1)
+{
+  If (RowNum<>0)
+  {
+    SelProcNum:=ProcNum
+    If (StrLen(ProcName) > 21)
+      ProcName:=SubStr(ProcName, 1, 18) . "..."
+    ControlSetText, , %ProcName%`r`n%ProcType%, ahk_id %hBtnProcWin%
+  }
+  Else
+  {
+    Msgbox, %L_NoItemSelected%
+    Return
+  }
+}
+Else
+{
+   ControlSetText, , %L_AutoProc%, ahk_id %hBtnProcWin%
+}
+Gui,Proc: Hide
+Return
+
+ProcCancel:
+Gui,Proc: Hide
 Return
 
 CancelRatio:
-Gui,2:-Disabled
-Gui,3:Hide
+Gui,Main:-Disabled
+Gui,Res:Hide
 Return
 
 SetRatio:
-Gui,2:-Disabled
-Gui,3:Submit
-GuiControl, 2:Text, ScaleRatio, % RatioCalc
+Gui,Main:-Disabled
+Gui,Res:Submit
+GuiControl, Main:Text, ScaleRatio, % RatioCalc
 Return
 
 ScaleGen:
-Gui,2:submit,nohide
+Gui,Main:submit,nohide
 IfExist, %InPath%
 {
   pBM := Gdip_CreateBitmapFromFile(InPath)
@@ -242,8 +326,8 @@ IfExist, %InPath%
   {
     BMWidth:= Gdip_GetImageWidth(pBM)
     BMHeight:= Gdip_GetImageHeight(pBM)
-    Gui,3:Show, x%restool_x% y%restool_y% w%restool_w% h%restool_h%, %L_CalcTitle%
-    Gui,2:+Disabled
+    Gui,Res:Show, x%restool_x% y%restool_y% w%restool_w% h%restool_h%, %L_CalcTitle%
+    Gui,Main:+Disabled
     Gdip_DisposeImage(pBM)
     Goto ResCalc
   }
@@ -251,30 +335,31 @@ IfExist, %InPath%
 Return
 
 ResCalc:
-Gui,3:submit,nohide
+Gui,Res:submit,nohide
 RegExMatch(ResForCalc, "^(\d+)x(\d+)$",ResMatch)
 RatioCalc := Calculate_Ratio(BMWidth, BMHeight, ResMatch1, ResMatch2)
-GuiControl, 3:Text, RatioCalcTxt, % RatioCalc
+GuiControl, Res:Text, RatioCalcTxt, % RatioCalc
 Return
 
-3Guiclose:
-Gui,2:-Disabled
-Gui,3:Hide
+ResGuiclose:
+Gui,Main:-Disabled
+Gui,Res:Hide
 Return
 
 Process:
-Gui,2:submit,nohide
+Gui,Main:submit,nohide
 If (InPath = "" or OutPath = "")
 {
   Msgbox, 262192, %L_Error%, %L_EmptyPath%
   Return
 }
 ;-=-=-=-=-=-=-=-=-=
-;GuiControl, 2:Disable, ProcessV
-GuiControl, 2:Disable, VTab
-;Gui,2:+Disabled
+;GuiControl, Main:Disable, ProcessV
+GuiControl, Main:Disable, VTab
+;Gui,Main:+Disabled
 ;-=-=-=-=-=-=-=-=-=
-ExePath = "%WPath%\%Exename%"
+Waifu2x_Path = "%WPath%\%Waifu2x_Exe%"
+Magick_Path = "%WPath%\%Magick_Exe%"
 Params =
 Loop 1 {
    Goto Case-ConvMode-%ConvMode%
@@ -307,53 +392,60 @@ If (DisableGPU = 1)
   Params := Params " --disable-gpu"
 If (ForceOpenCL = 1)
   Params := Params " --force-OpenCL"
+If (ManualProc=1)
+{
+  Params := Params " --processor " SelProcNum
+}
 Params := Params " --scale_ratio " ScaleRatio
 If (BLKSize <> "")
 If BLKSize is integer
   Params := Params " --block_size " BLKSize
 ;-=-=-=-=-=-=-=-=-=
+OutPath:=RegExReplace(OutPath, " *$", "\")
+OutPath:=RegExReplace(OutPath, "\\+", "\")
+If( InStr( FileExist(OutPath), "D") = 0 )
+   FileCreateDir, %OutPath%
 If (InputIsDir=0)
 {
-  Params = %Params% -i "%InPath%"
-  SplitPath, InPath, , , , Name_no_ext
-  Params = %Params% -o "%OutPath%\mai_%Name_no_ext%.%OutExt%"
-  SB_SetText(Exename . " " . Params)
-  RunWait, %ExePath% %Params% , %WPath%, %HideCMD%
+  SplitPath, InPath, , InPathDir, Ext, Name_no_ext
+  InPathDir=%InPathDir%\
+  If (InPathDir=OutPath)
+    FilePrefix := "mai_"
+  Outfile=%OutPath%%FilePrefix%%Name_no_ext%.%OutExt%
+  Convert_File(InPath, Outfile, Params, HideCMD)
 }
 Else
 {
-  If( InStr( FileExist(OutPath), "D") = 0 )
-    FileCreateDir, %OutPath%
-  Params_Prefix := Params
-  Params := ""
-  Loop %InPath%\*
+  InPath:=RegExReplace(InPath, " *$", "\")
+  InPath:=RegExReplace(InPath, "\\+", "\")
+  If (InPath=OutPath)
+    FilePrefix := "mai_"
+  Loop %InPath%*
   {
     SplitPath, A_LoopFileName, , , Ext, Name_no_ext
     If Ext in %FTypeList%
-    Params = %Params_Prefix% -i "%InPath%\%A_LoopFileName%" -o "%OutPath%\mai_%Name_no_ext%.%OutExt%"
-    SB_SetText(Exename . " " . Params)
-    RunWait, %ExePath% %Params% , %WPath%, %HideCMD%
+    {
+      InFile=%InPath%\%A_LoopFileName%
+      Outfile=%OutPath%%FilePrefix%%Name_no_ext%.%OutExt%
+      Convert_File(InFile, Outfile, Params, HideCMD)
+    }
   }
 }
 ;Msgbox % Params
-;Msgbox %ExePath% %Params%
-;Gui,2:-Disabled
-;GuiControl, 2:Enable, ProcessV
-GuiControl, 2:Enable, VTab
+;Msgbox %Waifu2x_Path% %Params%
+;Gui,Main:-Disabled
+;GuiControl, Main:Enable, ProcessV
+GuiControl, Main:Enable, VTab
 DllCall("SetCursor","UInt",NormalCur)
 HideCMD = Hide
 SB_SetText(L_Ready)
 Return
 
+;ViewProcInfo:
+;Msgbox,,%L_ProcInfoDiag%, % StdOutStream(Waifu2x_Exe " --list-processor")
+;Return
 
-
-
-
-ViewProcInfo:
-Msgbox,,%L_ProcInfoDiag%, % StdOutStream(Exename " --list-processor")
-Return
-
-2Guiclose:
+MainGuiclose:
 DllCall("DestroyCursor","Uint",BusyCur)
 DllCall("DestroyCursor","Uint",NormalCur)
 exitapp
@@ -372,7 +464,7 @@ if ! ErrorLevel
 GuiControl, , % HOutPath, % OutPathFromDiag
 Return
 
-2GuiContextMenu:
+MainGuiContextMenu:
 if A_GuiControl = InPathBtn
 {
   FileSelectFolder, InPathFromDiag , , , %L_ChooseInPath%
@@ -388,8 +480,8 @@ Return
 
 WM_MOUSEMOVE(){
   Global BusyCur
-  ;GuiControlGet, Enabled, 2:Enabled, ProcessV
-  GuiControlGet, Enabled, 2:Enabled, VTab
+  ;GuiControlGet, Enabled, Main:Enabled, ProcessV
+  GuiControlGet, Enabled, Main:Enabled, VTab
   If (Enabled = false)
   {
 	  DllCall("SetCursor","UInt",BusyCur)
@@ -491,6 +583,17 @@ Calculate_Ratio(InWidth, InHeight, OutWidth, OutHeight) {
     Return RatioW
   Else
     Return RatioH
+}
+
+Convert_File(InFile, Outfile, Params, HideCMD){
+  Global Waifu2x_Path
+  Global WPath
+  Global Magick_Path
+  Params = %Params% -i "%InFile%" -o "%Outfile%"
+  SB_SetText("Converting " . InFile)
+  RunWait, %Waifu2x_Path% %Params% , %WPath%, %HideCMD%
+  RunWait, %Magick_Path% "%Outfile%.png" "%Outfile%" , %WPath%, %HideCMD%
+  FileDelete, %Outfile%.png
 }
 
 ;$Esc::
