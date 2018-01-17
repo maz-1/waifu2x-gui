@@ -76,6 +76,7 @@ L_OK := "OK"
 L_Cancel := "Cancel"
 L_NotFound := "not found"
 L_NotValidDir := "Not a valid directory"
+L_Font="Tahoma"
 
 FileRead, I18N, %A_ScriptDir%\i18n.ini
 InTargetSection := false
@@ -111,7 +112,7 @@ w_width  = 600
 w_height = 220
 w_x := (A_ScreenWidth - w_width)/5
 w_y := (A_ScreenHeight - w_height)/2
-Gui,2: Font, s8, Tahoma
+Gui,2: Font, s8, %L_Font%
 ;Gui,2:+ToolWindow
 Gui,2:+HwndMyGuiHwnd
 ;-=-=-=-=-=-=-=-=-=
@@ -156,7 +157,7 @@ Loop, Files, models/* ,D
     If (A_LoopFileName = "models")
       Model_Default:=A_Index
 }
-Gui,2:Add, Combobox, x10 y170 w160 vOutModel Choose%Model_Default%, %Model_List%
+Gui,2:Add, Combobox, x10 y170 w170 vOutModel Choose%Model_Default%, %Model_List%
 ;-=-=-=-=-=-=-=-=-=
 Gui,2:Add, GroupBox, x190 y80 w125 h35, %L_Denoise_Level%
 ;Gui,2:Add, GroupBox, x190 y80 w125 h75, %L_Denoise_Level%
@@ -168,7 +169,7 @@ Gui,2:Add, GroupBox, x190 y155 w125 h40, %L_OutExt%
 Gui,2:Add, Combobox, x195 y170 w115 vOutExt Choose1, png|jpg|bmp
 ;-=-=-=-=-=-=-=-=-=
 Gui,2:Add, GroupBox, x190 y115 w125 h40, %L_BlkSize%
-Gui,2:Add, Edit, x195 y130 w115 h21 vBLKSize
+Gui,2:Add, Edit, x195 y130 w115 h18 vBLKSize
 ;-=-=-=-=-=-=-=-=-=
 Gui,2:Add, GroupBox, x320 y80 w115 h115, %L_ProcOpt%
 Gui,2:Add, Checkbox, x325 y97 w100 h20 vDisableGPU, %L_DisableGPU%
@@ -201,7 +202,7 @@ restool_w  = 200
 restool_h = 120
 restool_x := (A_ScreenWidth - restool_w)/3
 restool_y := (A_ScreenHeight - restool_h)/2
-ResAvailable = 800x600|1024x768|1280x720|1280x800|1360x768|1366x768|1440x900|1680x1050|1920x1080|1920x1200|1920x1440|2048x1536|2560x1440|4096x2160
+ResAvailable = 800x600|1024x768|1280x720|1280x800|1360x768|1366x768|1440x900|1680x1050|1920x1080|1920x1200|1920x1440|2048x1536|2560x1440|3200x1800|4096x2160
 Gui,3: Font, s8, Tahoma
 Gui,3:+ToolWindow
 Gui,3:+Owner2
@@ -312,25 +313,34 @@ If (BLKSize <> "")
 If BLKSize is integer
   Params := Params " --block_size " BLKSize
 ;-=-=-=-=-=-=-=-=-=
+OutPath:=RegExReplace(OutPath, " *$", "\")
+OutPath:=RegExReplace(OutPath, "\\+", "\")
 If (InputIsDir=0)
 {
   Params = %Params% -i "%InPath%"
-  SplitPath, InPath, , , , Name_no_ext
-  Params = %Params% -o "%OutPath%\mai_%Name_no_ext%.%OutExt%"
+  SplitPath, InPath, , InPathDir, , Name_no_ext
+  InPathDir=%InPathDir%\
+  If (InPathDir=OutPath)
+    FilePrefix := "mai_"
+  Params = %Params% -o "%OutPath%\%FilePrefix%%Name_no_ext%.%OutExt%"
   SB_SetText(Exename . " " . Params)
   RunWait, %ExePath% %Params% , %WPath%, %HideCMD%
 }
 Else
 {
+  InPath:=RegExReplace(InPath, " *$", "\")
+  InPath:=RegExReplace(InPath, "\\+", "\")
   If( InStr( FileExist(OutPath), "D") = 0 )
     FileCreateDir, %OutPath%
   Params_Prefix := Params
   Params := ""
-  Loop %InPath%\*
+  If (InPath=OutPath)
+    FilePrefix := "mai_"
+  Loop %InPath%*
   {
     SplitPath, A_LoopFileName, , , Ext, Name_no_ext
     If Ext in %FTypeList%
-    Params = %Params_Prefix% -i "%InPath%\%A_LoopFileName%" -o "%OutPath%\mai_%Name_no_ext%.%OutExt%"
+    Params = %Params_Prefix% -i "%InPath%\%A_LoopFileName%" -o "%OutPath%\%FilePrefix%%Name_no_ext%.%OutExt%"
     SB_SetText(Exename . " " . Params)
     RunWait, %ExePath% %Params% , %WPath%, %HideCMD%
   }
@@ -344,10 +354,6 @@ DllCall("SetCursor","UInt",NormalCur)
 HideCMD = Hide
 SB_SetText(L_Ready)
 Return
-
-
-
-
 
 ViewProcInfo:
 Msgbox,,%L_ProcInfoDiag%, % StdOutStream(Exename " --list-processor")
