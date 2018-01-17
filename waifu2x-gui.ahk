@@ -78,6 +78,7 @@ L_NotFound := "not found"
 L_NotValidDir := "Not a valid directory"
 L_Font="Tahoma"
 
+FileEncoding ,UTF-8
 FileRead, I18N, %A_ScriptDir%\i18n.ini
 InTargetSection := false
 Loop, Parse, I18N,`r,`n
