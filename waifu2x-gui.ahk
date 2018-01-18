@@ -8,10 +8,8 @@ title1=Waifu2x-CPP GUI By Maz-1 (maz_1@foxmail.com)
 StringCaseSense, Off
 SetFormat, Float, 0.2
 WPath = %A_ScriptDir%
-If (A_PtrSize = 8)
-  Exename = waifu2x-converter_x64.exe
-Else
-  Exename = waifu2x-converter_x86.exe
+Waifu2x_Exe = waifu2x-converter-cpp.exe
+Magick_Exe = magick.exe
 
 SetWorkingDir %WPath%
 
@@ -80,6 +78,7 @@ L_Font="Tahoma"
 
 FileEncoding ,UTF-8
 FileRead, I18N, %A_ScriptDir%\i18n.ini
+
 InTargetSection := false
 Loop, Parse, I18N,`r,`n
 {
@@ -103,9 +102,14 @@ Loop, Parse, I18N,`r,`n
 	  }
 }
 
-If !FileExist(WPath "\" Exename)
+If !FileExist(WPath "\" Waifu2x_Exe)
 {
-  Msgbox, ,%L_Error%, %Exename% %L_NotFound%
+  Msgbox, ,%L_Error%, %Waifu2x_Exe% %L_NotFound%
+  exitapp
+}
+If !FileExist(WPath "\" Magick_Exe)
+{
+  Msgbox, ,%L_Error%, %Magick_Exe% %L_NotFound%
   exitapp
 }
 
@@ -167,7 +171,7 @@ Gui,2:Add, Radio, x255 y97 w58 h14, %L_Level% 2
 ;Gui,2:Add, Radio, x195 y116 w58 h14, %L_Level% 2
 ;-=-=-=-=-=-=-=-=-=
 Gui,2:Add, GroupBox, x190 y155 w125 h40, %L_OutExt%
-Gui,2:Add, Combobox, x195 y170 w115 vOutExt Choose1, png|jpg|bmp
+Gui,2:Add, Combobox, x195 y170 w115 vOutExt Choose1, png|jpg|bmp|tiff|webp
 ;-=-=-=-=-=-=-=-=-=
 Gui,2:Add, GroupBox, x190 y115 w125 h40, %L_BlkSize%
 Gui,2:Add, Edit, x195 y130 w115 h18 vBLKSize
@@ -276,7 +280,8 @@ If (InPath = "" or OutPath = "")
 GuiControl, 2:Disable, VTab
 ;Gui,2:+Disabled
 ;-=-=-=-=-=-=-=-=-=
-ExePath = "%WPath%\%Exename%"
+Waifu2x_Path = "%WPath%\%Waifu2x_Exe%"
+Magick_Path = "%WPath%\%Magick_Exe%"
 Params =
 Loop 1 {
    Goto Case-ConvMode-%ConvMode%
@@ -316,38 +321,46 @@ If BLKSize is integer
 ;-=-=-=-=-=-=-=-=-=
 OutPath:=RegExReplace(OutPath, " *$", "\")
 OutPath:=RegExReplace(OutPath, "\\+", "\")
+If( InStr( FileExist(OutPath), "D") = 0 )
+   FileCreateDir, %OutPath%
 If (InputIsDir=0)
 {
   Params = %Params% -i "%InPath%"
-  SplitPath, InPath, , InPathDir, , Name_no_ext
+  SplitPath, InPath, , InPathDir, Ext, Name_no_ext
   InPathDir=%InPathDir%\
   If (InPathDir=OutPath)
     FilePrefix := "mai_"
-  Params = %Params% -o "%OutPath%\%FilePrefix%%Name_no_ext%.%OutExt%"
-  SB_SetText(Exename . " " . Params)
-  RunWait, %ExePath% %Params% , %WPath%, %HideCMD%
+  Outfile=%OutPath%%FilePrefix%%Name_no_ext%
+  TmpFile=%Outfile%_tmp.png
+  Params = %Params% -o "%TmpFile%"
+  SB_SetText(Waifu2x_Exe . " " . Params)
+  RunWait, %Waifu2x_Path% %Params% , %WPath%, %HideCMD%
+  RunWait, %Magick_Path% "%TmpFile%.png" -brightness-contrast 0.2 "%Outfile%.%OutExt%" , %WPath%, %HideCMD%
+  FileDelete, %TmpFile%.png 
 }
 Else
 {
-  InPath:=RegExReplace(InPath, " *$", "\")
-  InPath:=RegExReplace(InPath, "\\+", "\")
-  If( InStr( FileExist(OutPath), "D") = 0 )
-    FileCreateDir, %OutPath%
   Params_Prefix := Params
   Params := ""
+  InPath:=RegExReplace(InPath, " *$", "\")
+  InPath:=RegExReplace(InPath, "\\+", "\")
   If (InPath=OutPath)
     FilePrefix := "mai_"
   Loop %InPath%*
   {
     SplitPath, A_LoopFileName, , , Ext, Name_no_ext
     If Ext in %FTypeList%
-    Params = %Params_Prefix% -i "%InPath%\%A_LoopFileName%" -o "%OutPath%\%FilePrefix%%Name_no_ext%.%OutExt%"
-    SB_SetText(Exename . " " . Params)
-    RunWait, %ExePath% %Params% , %WPath%, %HideCMD%
+    Outfile=%OutPath%%FilePrefix%%Name_no_ext%
+    TmpFile=%Outfile%_tmp.png
+    Params = %Params_Prefix% -i "%InPath%\%A_LoopFileName%" -o "%TmpFile%"
+    SB_SetText(Waifu2x_Exe . " " . Params)
+    RunWait, %Waifu2x_Path% %Params% , %WPath%, %HideCMD%
+    RunWait, %Magick_Path% "%TmpFile%.png" -brightness-contrast 0.2 "%Outfile%.%OutExt%" , %WPath%, %HideCMD%
+    FileDelete, %TmpFile%.png 
   }
 }
 ;Msgbox % Params
-;Msgbox %ExePath% %Params%
+;Msgbox %Waifu2x_Path% %Params%
 ;Gui,2:-Disabled
 ;GuiControl, 2:Enable, ProcessV
 GuiControl, 2:Enable, VTab
@@ -357,7 +370,7 @@ SB_SetText(L_Ready)
 Return
 
 ViewProcInfo:
-Msgbox,,%L_ProcInfoDiag%, % StdOutStream(Exename " --list-processor")
+Msgbox,,%L_ProcInfoDiag%, % StdOutStream(Waifu2x_Exe " --list-processor")
 Return
 
 2Guiclose:
