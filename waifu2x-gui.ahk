@@ -330,13 +330,12 @@ If (InputIsDir=0)
   InPathDir=%InPathDir%\
   If (InPathDir=OutPath)
     FilePrefix := "mai_"
-  Outfile=%OutPath%%FilePrefix%%Name_no_ext%
-  TmpFile=%Outfile%_tmp.png
-  Params = %Params% -o "%TmpFile%"
+  Outfile=%OutPath%%FilePrefix%%Name_no_ext%.%OutExt%
+  Params = %Params% -o "%Outfile%"
   SB_SetText("Converting " . InPath)
   RunWait, %Waifu2x_Path% %Params% , %WPath%, %HideCMD%
-  RunWait, %Magick_Path% "%TmpFile%.png" -brightness-contrast 0.2 "%Outfile%.%OutExt%" , %WPath%, %HideCMD%
-  FileDelete, %TmpFile%.png 
+  RunWait, %Magick_Path% "%Outfile%.png" "%Outfile%" , %WPath%, %HideCMD%
+  FileDelete, %Outfile%.png
 }
 Else
 {
@@ -352,13 +351,12 @@ Else
     If Ext in %FTypeList%
     {
       InFile=%InPath%\%A_LoopFileName%
-      Outfile=%OutPath%%FilePrefix%%Name_no_ext%
-      TmpFile=%Outfile%_tmp.png
-      Params = %Params_Prefix% -i "%InFile%" -o "%TmpFile%"
+      Outfile=%OutPath%%FilePrefix%%Name_no_ext%.%OutExt%
+      Params = %Params_Prefix% -i "%InFile%" -o "%Outfile%"
       SB_SetText("Converting " . InFile)
       RunWait, %Waifu2x_Path% %Params% , %WPath%, %HideCMD%
-      RunWait, %Magick_Path% "%TmpFile%.png" -brightness-contrast 0.2 "%Outfile%.%OutExt%" , %WPath%, %HideCMD%
-      FileDelete, %TmpFile%.png 
+      RunWait, %Magick_Path% "%Outfile%.png" "%Outfile%" , %WPath%, %HideCMD%
+      FileDelete, %Outfile%.png
     }
   }
 }
