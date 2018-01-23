@@ -1,5 +1,5 @@
 #NoTrayIcon
-#singleinstance,force
+#SingleInstance force
 
 #include stdout2var.ahk
 #Include Gdip.ahk
@@ -325,22 +325,15 @@ If( InStr( FileExist(OutPath), "D") = 0 )
    FileCreateDir, %OutPath%
 If (InputIsDir=0)
 {
-  Params = %Params% -i "%InPath%"
   SplitPath, InPath, , InPathDir, Ext, Name_no_ext
   InPathDir=%InPathDir%\
   If (InPathDir=OutPath)
     FilePrefix := "mai_"
   Outfile=%OutPath%%FilePrefix%%Name_no_ext%.%OutExt%
-  Params = %Params% -o "%Outfile%"
-  SB_SetText("Converting " . InPath)
-  RunWait, %Waifu2x_Path% %Params% , %WPath%, %HideCMD%
-  RunWait, %Magick_Path% "%Outfile%.png" "%Outfile%" , %WPath%, %HideCMD%
-  FileDelete, %Outfile%.png
+  Convert_File(InPath, Outfile, Params, HideCMD)
 }
 Else
 {
-  Params_Prefix := Params
-  Params := ""
   InPath:=RegExReplace(InPath, " *$", "\")
   InPath:=RegExReplace(InPath, "\\+", "\")
   If (InPath=OutPath)
@@ -352,11 +345,7 @@ Else
     {
       InFile=%InPath%\%A_LoopFileName%
       Outfile=%OutPath%%FilePrefix%%Name_no_ext%.%OutExt%
-      Params = %Params_Prefix% -i "%InFile%" -o "%Outfile%"
-      SB_SetText("Converting " . InFile)
-      RunWait, %Waifu2x_Path% %Params% , %WPath%, %HideCMD%
-      RunWait, %Magick_Path% "%Outfile%.png" "%Outfile%" , %WPath%, %HideCMD%
-      FileDelete, %Outfile%.png
+      Convert_File(InFile, Outfile, Params, HideCMD)
     }
   }
 }
@@ -512,6 +501,17 @@ Calculate_Ratio(InWidth, InHeight, OutWidth, OutHeight) {
     Return RatioW
   Else
     Return RatioH
+}
+
+Convert_File(InFile, Outfile, Params, HideCMD){
+  Global Waifu2x_Path
+  Global WPath
+  Global Magick_Path
+  Params = %Params% -i "%InFile%" -o "%Outfile%"
+  SB_SetText("Converting " . InFile)
+  RunWait, %Waifu2x_Path% %Params% , %WPath%, %HideCMD%
+  RunWait, %Magick_Path% "%Outfile%.png" "%Outfile%" , %WPath%, %HideCMD%
+  FileDelete, %Outfile%.png
 }
 
 ;$Esc::
