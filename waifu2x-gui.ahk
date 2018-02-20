@@ -13,9 +13,10 @@ Magick_Exe = magick.exe
 
 SetWorkingDir %WPath%
 
-HideCMD = Hide
+HideCMD:="Hide"
+ConverterPID:=0
 
-FTypeInit = png,jpg,jpeg,jfif,tif,tiff,bmp,tga
+FTypeInit:="png,jpg,jpeg,jfif,tif,tiff,bmp,tga"
 
 GDIPToken := Gdip_Startup()
 
@@ -80,6 +81,7 @@ L_SelProc:="Select processor"
 L_SelProcInfo:="Click to manually specify processor"
 L_NoItemSelected:="No item selected"
 L_AutoProc:="Select processor automatically"
+L_CancelTip:="Press Ctrl+K to cancel"
 L_Font:="Tahoma"
 
 FileEncoding ,UTF-8
@@ -129,9 +131,11 @@ Gui,Main:+HwndMainGuiHwnd
 ;-=-=-=-=-=-=-=-=-=
 WM_DROPFILES := 0x0233
 WS_EX_ACCEPTFILES := 0x10
+WM_MOUSEMOVE := 0x200
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, Tab2, x0 y0 w0 h0 -Wrap vVTab, OneTab
 Gui,Main:Tab, OneTab
+;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, Text, x5 y12 w60 h30 Center, %L_InPath%
 Gui,Main:Add, Edit, % "HwndHInPath r1 vInPath x70 y10 h30 w" w_width-120 " +E" WS_EX_ACCEPTFILES, %fName%
 Gui,Main:add,Button, % "vInPathBtn gSelectInPath y9 w30 h23 x" w_width - 40 , ...
@@ -147,7 +151,7 @@ BusyCur:=DllCall("LoadCursor","UInt",NULL,"Int",32514,"UInt") ;IDC_WAIT
 NormalCur:=DllCall("LoadCursor","UInt",NULL,"Int",32512,"UInt") ;IDC_ARROW
 InputIsDir := false
 OnMessage(WM_DROPFILES, "On_WM_DROPFILES")
-OnMessage(0x200, "WM_MOUSEMOVE")
+OnMessage(WM_MOUSEMOVE, "On_WM_MOUSEMOVE")
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x5 y80 w150 h75, %L_ConvMode%
 ;Gui,Main:Add, GroupBox, x5 y80 w150 h75, %L_ConvMode%
@@ -201,7 +205,8 @@ ScaleGenBtn_TT = %L_ScaleGenTip%
 Gui,Main:Add, GroupBox, x470 y117 w170 h40, %L_ProcTheseTypes%
 Gui,Main:Add, Edit, x475 y133 w160 h20 vFTypeList, % FTypeInit
 ;-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, Button, x469 y160 w172 h39 gProcess vProcessV, %L_Go%
+;Gui,Main:Tab
+Gui,Main:Add, Button, x469 y160 w172 h39 hwndhBtnGo gProcess vProcessV, %L_Go%
 ProcessV_TT = %L_GoTip%
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, StatusBar,, %L_Ready%
@@ -241,7 +246,6 @@ LV_ModifyCol(2, 50)
 LV_ModifyCol(3, 265)
 Gui,Proc: Add, Button, x5 y230 w170 h30 gProcOk, %L_OK%
 Gui,Proc: Add, Button, x185 y230 w170 h30 gProcCancel, %L_Cancel%
-;GoSub ProcInit
 Return
 
 ProcInit:
@@ -344,7 +348,18 @@ Gui,Main:-Disabled
 Gui,Res:Hide
 Return
 
+^K::
+WinGet, active_id, ID, A
+GuiControlGet, Enabled, Main:Enabled, VTab
+If (active_id=MainGuiHwnd and Enabled=False)
+  Process, Close, %ConverterPID%
+Return
+
 Process:
+GuiControlGet, Enabled, Main:Enabled, VTab
+ControlSetText, , %L_CancelTip%, ahk_id %hBtnGo%
+If (Enabled=False)
+  Return
 Gui,Main:submit,nohide
 If (InPath = "" or OutPath = "")
 {
@@ -352,9 +367,7 @@ If (InPath = "" or OutPath = "")
   Return
 }
 ;-=-=-=-=-=-=-=-=-=
-;GuiControl, Main:Disable, ProcessV
 GuiControl, Main:Disable, VTab
-;Gui,Main:+Disabled
 ;-=-=-=-=-=-=-=-=-=
 Waifu2x_Path = "%WPath%\%Waifu2x_Exe%"
 Magick_Path = "%WPath%\%Magick_Exe%"
@@ -429,11 +442,8 @@ Else
     }
   }
 }
-;Msgbox % Params
-;Msgbox %Waifu2x_Path% %Params%
-;Gui,Main:-Disabled
-;GuiControl, Main:Enable, ProcessV
 GuiControl, Main:Enable, VTab
+ControlSetText, , %L_OK%, ahk_id %hBtnGo%
 DllCall("SetCursor","UInt",NormalCur)
 HideCMD = Hide
 SB_SetText(L_Ready)
@@ -472,9 +482,8 @@ if A_GuiControl = ProcessV
 }
 Return
 
-WM_MOUSEMOVE(){
+On_WM_MOUSEMOVE(){
   Global BusyCur
-  ;GuiControlGet, Enabled, Main:Enabled, ProcessV
   GuiControlGet, Enabled, Main:Enabled, VTab
   If (Enabled = false)
   {
@@ -583,9 +592,10 @@ Convert_File(InFile, Outfile, Params, HideCMD){
   Global Waifu2x_Path
   Global WPath
   Global Magick_Path
+  Global ConverterPID
   Params = %Params% -i "%InFile%" -o "%Outfile%"
   SB_SetText("Converting " . InFile)
-  RunWait, %Waifu2x_Path% %Params% , %WPath%, %HideCMD%
+  RunWait, %Waifu2x_Path% %Params% , %WPath%, %HideCMD%, ConverterPID
   RunWait, %Magick_Path% "%Outfile%.png" "%Outfile%" , %WPath%, %HideCMD%
   FileDelete, %Outfile%.png
 }
