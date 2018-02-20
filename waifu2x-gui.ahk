@@ -214,7 +214,7 @@ restool_h = 120
 restool_x := (A_ScreenWidth - restool_w)/3
 restool_y := (A_ScreenHeight - restool_h)/2
 ResAvailable = 800x600|1024x768|1280x720|1280x800|1360x768|1366x768|1440x900|1680x1050|1920x1080|1920x1200|1920x1440|2048x1536|2560x1440|3200x1800|4096x2160
-Gui,Res: Font, s8, Tahoma
+Gui,Res: Font, s8, %L_Font%
 Gui,Res:+ToolWindow
 Gui,Res:+OwnerMain
 ;-=-=-=-=-=-=-=-=-=
@@ -230,7 +230,7 @@ Gui,Res:Add, Button, % "gCancelRatio y80 w85 h30 x" restool_w-95, %L_Cancel%
 ;-=-=-=-=-=-=-=-=-=-=-=-=
 SelProcNum:=0
 ManualProc:=0
-Gui,Proc: Font, s8, Tahoma
+Gui,Proc: Font, s8, %L_Font%
 Gui,Proc:+ToolWindow
 Gui,Proc:+OwnerMain
 Gui,Proc: Add, CheckBox, x5 y5 h14 vManualProcChecked hwndhManualProc -Checked, %L_ManualProc%
