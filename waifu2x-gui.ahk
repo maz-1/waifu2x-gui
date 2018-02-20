@@ -50,7 +50,6 @@ L_ProcOpt := "Processor options"
 L_DisableGPU := "Disable GPU"
 L_ForceOpenCL := "Force OpenCL"
 L_Threads := "Threads"
-L_ProcInfoTip := "View processors"
 L_ScaleRatio := "Scale ratio"
 L_ProcTheseTypes := "Process these filetypes"
 L_Go := "Go"
@@ -62,7 +61,6 @@ L_CantHandle := "Cannot handle"
 L_OnePathAllowed := "Only one path allowed"
 L_WrongType := "Wrong file type"
 L_PicDirOnly := "Only picture file or directory"
-L_ProcInfoDiag := "Processors Info"
 L_ChooseInPath := "Choose Input Path"
 L_ChooseOutPath := "Choose Output Path"
 L_ScaleGenTip := "Calculate a ratio for wallpaper"
@@ -121,7 +119,7 @@ If !FileExist(WPath "\" Magick_Exe)
   exitapp
 }
 
-w_width  = 600
+w_width  = 620
 w_height = 224
 w_x := (A_ScreenWidth - w_width)/5
 w_y := (A_ScreenHeight - w_height)/2
@@ -191,19 +189,19 @@ Gui,Main:Add, Button, x294 y135 w137 h35 vSelProcInfoV hwndhBtnProcWin gProcInit
 SelProcInfoV_TT:=L_SelProcInfo
 EnvGet, ProcessorCount, NUMBER_OF_PROCESSORS
 Gui,Main:Add, Text, x295 y177 w135 h20, %L_Threads%
-Gui,Main:Add, Edit, x335 y175 w95 h18 vThreads, % ProcessorCount
+Gui,Main:Add, Edit, x340 y175 w90 h18 vThreads, % ProcessorCount
 Gui,Main:Add, UpDown, % "range1-" ProcessorCount, % ProcessorCount
 ;-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, GroupBox, x440 y80 w150 h37, %L_ScaleRatio%
-Gui,Main:Add, Edit, x445 y95 w110 h18 vScaleRatio, 2
+Gui,Main:Add, GroupBox, x440 y80 w170 h37, %L_ScaleRatio%
+Gui,Main:Add, Edit, x445 y95 w130 h18 vScaleRatio, 2
 Gui,Main:Add, UpDown, range1-50, 2
-Gui,Main:Add, Button, x560 y94 w25 h20 vScaleGenBtn gScaleGen, ...
+Gui,Main:Add, Button, x580 y94 w25 h20 vScaleGenBtn gScaleGen, ...
 ScaleGenBtn_TT = %L_ScaleGenTip%
 ;-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, GroupBox, x440 y117 w150 h40, %L_ProcTheseTypes%
-Gui,Main:Add, Edit, x445 y133 w140 h20 vFTypeList, % FTypeInit
+Gui,Main:Add, GroupBox, x440 y117 w170 h40, %L_ProcTheseTypes%
+Gui,Main:Add, Edit, x445 y133 w160 h20 vFTypeList, % FTypeInit
 ;-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, Button, x439 y160 w152 h39 gProcess vProcessV, %L_Go%
+Gui,Main:Add, Button, x439 y160 w172 h39 gProcess vProcessV, %L_Go%
 ProcessV_TT = %L_GoTip%
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, StatusBar,, %L_Ready%
@@ -440,10 +438,6 @@ DllCall("SetCursor","UInt",NormalCur)
 HideCMD = Hide
 SB_SetText(L_Ready)
 Return
-
-;ViewProcInfo:
-;Msgbox,,%L_ProcInfoDiag%, % StdOutStream(Waifu2x_Exe " --list-processor")
-;Return
 
 MainGuiclose:
 DllCall("DestroyCursor","Uint",BusyCur)
