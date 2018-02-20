@@ -119,7 +119,7 @@ If !FileExist(WPath "\" Magick_Exe)
   exitapp
 }
 
-w_width  = 620
+w_width  = 650
 w_height = 224
 w_x := (A_ScreenWidth - w_width)/5
 w_y := (A_ScreenHeight - w_height)/2
@@ -148,7 +148,7 @@ NormalCur:=DllCall("LoadCursor","UInt",NULL,"Int",32512,"UInt") ;IDC_ARROW
 InputIsDir := false
 OnMessage(WM_DROPFILES, "On_WM_DROPFILES")
 OnMessage(0x200, "WM_MOUSEMOVE")
-;-=-=-=-=-=-=-=-=-=
+;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x5 y80 w150 h75, %L_ConvMode%
 ;Gui,Main:Add, GroupBox, x5 y80 w150 h75, %L_ConvMode%
 Gui,Main:Add, Radio, x10 y96 w130 h14 vConvMode, %L_Denoise%
@@ -169,41 +169,41 @@ Loop, Files, models/* ,D
       Model_Default:=A_Index
 }
 Gui,Main:Add, Combobox, x10 y170 w140 vOutModel Choose%Model_Default%, %Model_List%
+;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Gui,Main:Add, GroupBox, x160 y80 w145 h35, %L_Denoise_Level%
+;Gui,Main:Add, GroupBox, x160 y80 w135 h75, %L_Denoise_Level%
+Gui,Main:Add, Radio, x165 y97 w68 h14 vDenoiseLevel Checked, %L_Level% 1
+Gui,Main:Add, Radio, x235 y97 w68 h14, %L_Level% 2
+;Gui,Main:Add, Radio, x165 y116 w68 h14, %L_Level% 2
 ;-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, GroupBox, x160 y80 w125 h35, %L_Denoise_Level%
-;Gui,Main:Add, GroupBox, x160 y80 w125 h75, %L_Denoise_Level%
-Gui,Main:Add, Radio, x165 y97 w58 h14 vDenoiseLevel Checked, %L_Level% 1
-Gui,Main:Add, Radio, x225 y97 w58 h14, %L_Level% 2
-;Gui,Main:Add, Radio, x165 y116 w58 h14, %L_Level% 2
+Gui,Main:Add, GroupBox, x160 y155 w145 h44, %L_OutExt%
+Gui,Main:Add, Combobox, x165 y170 w135 vOutExt Choose1, png|jpg|bmp|tiff|webp
 ;-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, GroupBox, x160 y155 w125 h44, %L_OutExt%
-Gui,Main:Add, Combobox, x165 y170 w115 vOutExt Choose1, png|jpg|bmp|tiff|webp
-;-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, GroupBox, x160 y115 w125 h40, %L_BlkSize%
-Gui,Main:Add, Edit, x165 y130 w115 h18 vBLKSize
-;-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, GroupBox, x290 y80 w145 h119, %L_ProcOpt%
-Gui,Main:Add, Checkbox, x295 y97 w130 h20 vDisableGPU, %L_DisableGPU%
-Gui,Main:Add, Checkbox, x295 y116 w135 h20 vForceOpenCL, %L_ForceOpenCL%
-Gui,Main:Add, Button, x294 y135 w137 h35 vSelProcInfoV hwndhBtnProcWin gProcInit, %L_AutoProc%
+Gui,Main:Add, GroupBox, x160 y115 w145 h40, %L_BlkSize%
+Gui,Main:Add, Edit, x165 y130 w135 h18 vBLKSize
+;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Gui,Main:Add, GroupBox, x310 y80 w155 h119, %L_ProcOpt%
+Gui,Main:Add, Checkbox, x315 y97 w140 h20 vDisableGPU, %L_DisableGPU%
+Gui,Main:Add, Checkbox, x315 y116 w145 h20 vForceOpenCL, %L_ForceOpenCL%
+Gui,Main:Add, Button, x314 y135 w147 h35 vSelProcInfoV hwndhBtnProcWin gProcInit, %L_AutoProc%
 SelProcInfoV_TT:=L_SelProcInfo
 EnvGet, ProcessorCount, NUMBER_OF_PROCESSORS
-Gui,Main:Add, Text, x295 y177 w135 h20, %L_Threads%
-Gui,Main:Add, Edit, x340 y175 w90 h18 vThreads, % ProcessorCount
+Gui,Main:Add, Text, x315 y177 w145 h20, %L_Threads%
+Gui,Main:Add, Edit, x390 y175 w70 h18 vThreads, % ProcessorCount
 Gui,Main:Add, UpDown, % "range1-" ProcessorCount, % ProcessorCount
-;-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, GroupBox, x440 y80 w170 h37, %L_ScaleRatio%
-Gui,Main:Add, Edit, x445 y95 w130 h18 vScaleRatio, 2
+;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Gui,Main:Add, GroupBox, x470 y80 w170 h37, %L_ScaleRatio%
+Gui,Main:Add, Edit, x475 y95 w130 h18 vScaleRatio, 2
 Gui,Main:Add, UpDown, range1-50, 2
-Gui,Main:Add, Button, x580 y94 w25 h20 vScaleGenBtn gScaleGen, ...
+Gui,Main:Add, Button, x610 y94 w25 h20 vScaleGenBtn gScaleGen, ...
 ScaleGenBtn_TT = %L_ScaleGenTip%
 ;-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, GroupBox, x440 y117 w170 h40, %L_ProcTheseTypes%
-Gui,Main:Add, Edit, x445 y133 w160 h20 vFTypeList, % FTypeInit
+Gui,Main:Add, GroupBox, x470 y117 w170 h40, %L_ProcTheseTypes%
+Gui,Main:Add, Edit, x475 y133 w160 h20 vFTypeList, % FTypeInit
 ;-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, Button, x439 y160 w172 h39 gProcess vProcessV, %L_Go%
+Gui,Main:Add, Button, x469 y160 w172 h39 gProcess vProcessV, %L_Go%
 ProcessV_TT = %L_GoTip%
-;-=-=-=-=-=-=-=-=-=
+;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, StatusBar,, %L_Ready%
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Show, x%w_x% y%w_y% w%w_width% h%w_height%, %title1%
