@@ -189,7 +189,7 @@ Gui,Main:Add, Edit, x165 y130 w135 h18 vBLKSize
 Gui,Main:Add, GroupBox, x310 y80 w155 h119, %L_ProcOpt%
 Gui,Main:Add, Checkbox, x315 y97 w140 h20 vDisableGPU, %L_DisableGPU%
 Gui,Main:Add, Checkbox, x315 y116 w145 h20 vForceOpenCL, %L_ForceOpenCL%
-Gui,Main:Add, Button, x314 y135 w147 h35 vSelProcInfoV hwndhBtnProcWin gProcInit, %L_AutoProc%
+Gui,Main:Add, Button, x314 y136 w147 h35 vSelProcInfoV hwndhBtnProcWin gProcInit, %L_AutoProc%
 SelProcInfoV_TT:=L_SelProcInfo
 EnvGet, ProcessorCount, NUMBER_OF_PROCESSORS
 Gui,Main:Add, Text, x315 y177 w145 h20, %L_Threads%
