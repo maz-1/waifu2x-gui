@@ -11,6 +11,8 @@ StringCaseSense, Off
 SetFormat, Float, 0.2
 WPath = %A_ScriptDir%
 Waifu2x_Exe = waifu2x-converter-cpp.exe
+I18nFile:=A_ScriptDir . "\i18n.ini"
+SettingsFile:=A_ScriptDir . "\settings.ini"
 
 SetWorkingDir %WPath%
 
@@ -19,7 +21,9 @@ FTypeInit:="png,jpg,jpeg,jfif,tif,tiff,bmp,tga"
 GDIPToken := Gdip_Startup()
 
 ConverterPID:=0
-ProcessorsCmdOut:=""
+SelProcNum:=0
+ManualProc:=0
+CurrentProc:=""
 
 fName = %1%
 DirInit =
@@ -30,6 +34,15 @@ If FileExist(fName)
 else
 {
   fName = 
+}
+
+ProcessorsArr:=[]
+ProcessorsCmdOut:=StdOutStream(Waifu2x_Exe " --list-processor")
+Loop, Parse, ProcessorsCmdOut,`r,`n
+{
+  RegExMatch(A_LoopField, "O)^\s{3}(\d):\s+(.*?)\s+\((\S+)\s*\):\snum_core=(\d+)$" , OutputVar)
+  If (OutputVar.Value(1) <> "")
+    ProcessorsArr.Push(OutputVar.Value(1) . "|" . OutputVar.Value(3) . "|" . OutputVar.Value(2))
 }
 
 
@@ -44,7 +57,6 @@ L_Denoise := "Denoise"
 L_Scale := "Scale"
 L_Denoise_Scale := "Denoise and scale"
 L_Denoise_Level := "JPEG denoise level"
-L_Level := "Level"
 L_OutExt := "Output extension"
 L_Model := "Model"
 L_BlkSize := "Block size"
@@ -86,7 +98,7 @@ L_CancelTip:="Press Ctrl+K to cancel"
 L_Font:="Tahoma"
 
 FileEncoding ,UTF-8
-FileRead, I18N, %A_ScriptDir%\i18n.ini
+FileRead, I18N, %I18nFile%
 
 InTargetSection := false
 Loop, Parse, I18N,`r,`n
@@ -156,10 +168,9 @@ OnMessage(WM_MOUSEMOVE, "On_WM_MOUSEMOVE")
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x5 y80 w150 h75, %L_ConvMode%
 ;Gui,Main:Add, GroupBox, x5 y80 w150 h75, %L_ConvMode%
-Gui,Main:Add, Radio, x10 y96 w130 h14 vConvMode, %L_Denoise%
-Gui,Main:Add, Radio, x10 y114 w130 h14, %L_Scale%
-Gui,Main:Add, Radio, x10 y132 w130 h14 Checked, %L_Denoise_Scale%
-;Gui,Main:Add, Radio, x10 y154 w130 h14 vConvMode4, Denoise(autodetect) and scale
+Gui,Main:Add, Radio, hwndhConv1 x10 y96 w130 h14 vConvMode, %L_Denoise%
+Gui,Main:Add, Radio, hwndhConv2 x10 y114 w130 h14, %L_Scale%
+Gui,Main:Add, Radio, hwndhConv3 x10 y132 w130 h14 Checked, %L_Denoise_Scale%
 Gui,Main:Add, GroupBox, x5 y155 w150 h44, %L_Model%
 Model_List:=""
 Model_Default:=1
@@ -177,9 +188,9 @@ Gui,Main:Add, Combobox, x10 y170 w140 vOutModel Choose%Model_Default%, %Model_Li
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x160 y80 w145 h35, %L_Denoise_Level%
 ;Gui,Main:Add, GroupBox, x160 y80 w135 h75, %L_Denoise_Level%
-Gui,Main:Add, Radio, x165 y97 w68 h14 vDenoiseLevel Checked, %L_Level% 1
-Gui,Main:Add, Radio, x235 y97 w68 h14, %L_Level% 2
-;Gui,Main:Add, Radio, x165 y116 w68 h14, %L_Level% 2
+Gui,Main:Add, Radio, hwndhdenoise1 x165 y97 w45 h14 vDenoiseLevel Checked, 1
+Gui,Main:Add, Radio, hwndhdenoise2 x210 y97 w45 h14, 2
+Gui,Main:Add, Radio, hwndhdenoise3 x255 y97 w45 h14, 3
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x160 y155 w145 h44, %L_OutExt%
 Gui,Main:Add, Combobox, x165 y170 w135 vOutExt Choose1, png|jpg|bmp|tiff
@@ -189,8 +200,8 @@ Gui,Main:Add, GroupBox, x160 y115 w145 h40, %L_BlkSize%
 Gui,Main:Add, Edit, x165 y130 w135 h18 vBLKSize
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x310 y80 w155 h119, %L_ProcOpt%
-Gui,Main:Add, Checkbox, x315 y97 w140 h20 vDisableGPU, %L_DisableGPU%
-Gui,Main:Add, Checkbox, x315 y116 w145 h20 vForceOpenCL, %L_ForceOpenCL%
+Gui,Main:Add, Checkbox, hwndhnogpu x315 y97 w140 h20 vDisableGPU, %L_DisableGPU%
+Gui,Main:Add, Checkbox, hwndhforceocl x315 y116 w145 h20 vForceOpenCL, %L_ForceOpenCL%
 Gui,Main:Add, Button, x314 y136 w147 h35 vSelProcInfoV hwndhBtnProcWin gProcInit, %L_AutoProc%
 SelProcInfoV_TT:=L_SelProcInfo
 EnvGet, ProcessorCount, NUMBER_OF_PROCESSORS
@@ -213,7 +224,50 @@ ProcessV_TT = %L_GoTip%
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, StatusBar,, %L_Ready%
 ;-=-=-=-=-=-=-=-=-=
+;tobedone
+if FileExist(SettingsFile)
+{
+  IniRead, StoredConvMode, %SettingsFile%, Main, convmode
+    hConv:=hConv%StoredConvMode%
+    GuiControl, , %hConv%, 1
+  IniRead, StoredModel, %SettingsFile%, Main, model
+    if FileExist(A_ScriptDir . "\models\" . StoredModel)
+      GuiControl, Main:Text, OutModel, % StoredModel
+  IniRead, StoredDenoiseLevel, %SettingsFile%, Main, denoise
+    hdenoise:=hdenoise%StoredDenoiseLevel%
+    GuiControl, , %hdenoise%, 1
+  IniRead, StoredBlockSize, %SettingsFile%, Main, blocksize
+    GuiControl, Main:Text, BLKSize, % StoredBlockSize
+  IniRead, StoredExtension, %SettingsFile%, Main, extension
+    GuiControl, Main:Text, OutExt, % StoredExtension
+  IniRead, StoredNGPU, %SettingsFile%, Main, nogpu
+    StoredNGPU:=(StoredNGPU)?1:0
+    GuiControl, , %hnogpu%, %StoredNGPU%
+  IniRead, StoredFOCL, %SettingsFile%, Main, forceocl
+    StoredFOCL:=(StoredFOCL)?1:0
+    GuiControl, , %hforceocl%, %StoredFOCL%
+  IniRead, StoredDPROC, %SettingsFile%, Main, defaultproc
+    If (HasVal(ProcessorsArr, StoredDPROC)<>0)
+    {
+      ArrayTmp:=StrSplit(StoredDPROC , "|")
+      SelProcNum:=ArrayTmp[1]
+      CurrentProc:=StoredDPROC
+      ManualProc:=1
+      ProcsSetText(ArrayTmp[2], ArrayTmp[3])
+    }
+  IniRead, StoredThreads, %SettingsFile%, Main, threads
+    If (StoredThreads <= ProcessorCount)
+      GuiControl, Main:Text, Threads, % StoredThreads
+  IniRead, StoredRatio, %SettingsFile%, Main, ratio
+    GuiControl, Main:Text, ScaleRatio, % StoredRatio
+  IniRead, StoredFtypes, %SettingsFile%, Main, filetypes
+    GuiControl, Main:Text, FTypeList, % StoredFtypes
+}
+;-=-=-=-=-=-=-=-=-=
 Gui,Main:Show, x%w_x% y%w_y% w%w_width% h%w_height%, %title1%
+;-=-=-=-=-=-=-=-=-=
+
+
 
 RatioCalc =
 restool_w  = 200
@@ -229,14 +283,12 @@ Gui,Res:Add, Text, x5 y12 w60 h30 Center, %L_Resolution%
 Gui,Res:Add, Combobox, % "vResForCalc gResCalc x70 y10 w" restool_w-80, %ResAvailable%
 Sysget, MonResX, 0
 Sysget, MonResY, 1
-GuiControl, Res:Text, ResForCalc, % MonResX "x" MonResY
+GuiControl, Res:Text, ResForCalc, % MonResX . "x" . MonResY
 Gui,Res:Add, GroupBox, % "x10 y35 h37 w" restool_w-20 , %L_CalcRatio%
 Gui,Res:Add, Text, % "vRatioCalcTxt x15 y50 h20 w" restool_w-30 , 0
 Gui,Res:Add, Button, x9 y80 w85 h30 gSetRatio, %L_OK%
 Gui,Res:Add, Button, % "gCancelRatio y80 w85 h30 x" restool_w-95, %L_Cancel%
 ;-=-=-=-=-=-=-=-=-=-=-=-=
-SelProcNum:=0
-ManualProc:=0
 Gui,Proc: Font, s8, %L_Font%
 Gui,Proc:+ToolWindow
 Gui,Proc:+OwnerMain
@@ -254,13 +306,10 @@ Return
 ProcInit:
 Gui,Proc: Default
 LV_Delete()
-If (ProcessorsCmdOut="")
-  ProcessorsCmdOut:=StdOutStream(Waifu2x_Exe " --list-processor")
-Loop, Parse, ProcessorsCmdOut,`r,`n
+for index, element in ProcessorsArr
 {
-  RegExMatch(A_LoopField, "O)^\s{3}(\d):\s+(.*?)\s+\((\S+)\s*\):\snum_core=(\d+)$" , OutputVar)
-  If (OutputVar.Value(1) <> "")
-    LV_Add( ,OutputVar.Value(1), OutputVar.Value(3), OutputVar.Value(2))
+  ArrayTmp:=StrSplit(element , "|")
+  LV_Add( ,ArrayTmp[1], ArrayTmp[2], ArrayTmp[3])
 }
 Gui,Main: Default
 Gui,Proc: Show, ,%L_SelProc%
@@ -290,9 +339,8 @@ If (ManualProc=1)
   If (RowNum<>0)
   {
     SelProcNum:=ProcNum
-    If (StrLen(ProcName) > 21)
-      ProcName:=SubStr(ProcName, 1, 18) . "..."
-    ControlSetText, , %ProcName%`r`n%ProcType%, ahk_id %hBtnProcWin%
+    ProcsSetText(ProcType, ProcName)
+    CurrentProc:=ProcNum . "|" ProcType . "|" . ProcName
   }
   Else
   {
@@ -303,6 +351,7 @@ If (ManualProc=1)
 Else
 {
    ControlSetText, , %L_AutoProc%, ahk_id %hBtnProcWin%
+   CurrentProc:=""
 }
 Gui,Proc: Hide
 Return
@@ -365,7 +414,6 @@ Return
 
 Process:
 GuiControlGet, Enabled, Main:Enabled, VTab
-ControlSetText, , %L_CancelTip%, ahk_id %hBtnGo%
 If (Enabled=False)
   Return
 Gui,Main:submit,nohide
@@ -374,6 +422,7 @@ If (InPath = "" or OutPath = "")
   Msgbox, 262192, %L_Error%, %L_EmptyPath%
   Return
 }
+ControlSetText, , %L_CancelTip%, ahk_id %hBtnGo%
 ;-=-=-=-=-=-=-=-=-=
 GuiControl, Main:Disable, VTab
 ;-=-=-=-=-=-=-=-=-=
@@ -392,15 +441,7 @@ Case-ConvMode-3:
    Break
 }
 ;-=-=-=-=-=-=-=-=-=
-Loop 1 {
-   Goto Case-DenoiseLevel-%DenoiseLevel%
-Case-DenoiseLevel-1:
-   Params := Params " --noise_level 1"
-   Break
-Case-DenoiseLevel-2:
-   Params := Params " --noise_level 2"
-   Break
-}
+Params := Params " --noise_level " . DenoiseLevel
 ;-=-=-=-=-=-=-=-=-=
 Params := Params " --model_dir """ A_ScriptDir "\models\" OutModel """"
 ;-=-=-=-=-=-=-=-=-=
@@ -419,6 +460,7 @@ If (BLKSize <> "")
 If BLKSize is integer
   Params := Params " --block_size " BLKSize
 ;-=-=-=-=-=-=-=-=-=
+;Msgbox % Params
 OutPath:=RegExReplace(OutPath, " *$", "\")
 OutPath:=RegExReplace(OutPath, "\\+", "\")
 If( InStr( FileExist(OutPath), "D") = 0 )
@@ -625,9 +667,41 @@ Convert_Format(InFile, OutFile)
 	Return Result
 }
 
+ProcsSetText(ProcType, ProcName)
+{
+  Global hBtnProcWin
+  If (StrLen(ProcName) > 21)
+    ProcName:=SubStr(ProcName, 1, 18) . "..."
+  ControlSetText, , %ProcName%`r`n%ProcType%, ahk_id %hBtnProcWin%
+}
+
+HasVal(haystack, needle) {
+	if !(IsObject(haystack)) || (haystack.Length() = 0)
+		return 0
+	for index, value in haystack
+		if (value = needle)
+			return index
+	return 0
+}
+
 ExitFunc() 
 {
   Global GDIPToken
+  Global SettingsFile
+  Global ConvMode, OutModel, DenoiseLevel, OutExt, BLKSize, DisableGPU
+  Global ForceOpenCL, CurrentProc, Threads, ScaleRatio, FTypeList
+  Gui,Main:submit
+  IniWrite, %ConvMode%, %SettingsFile%, Main, convmode
+  IniWrite, %OutModel%, %SettingsFile%, Main, model
+  IniWrite, %DenoiseLevel%, %SettingsFile%, Main, denoise
+  IniWrite, %OutExt%, %SettingsFile%, Main, extension
+  IniWrite, %BLKSize%, %SettingsFile%, Main, blocksize
+  IniWrite, %DisableGPU%, %SettingsFile%, Main, nogpu
+  IniWrite, %ForceOpenCL%, %SettingsFile%, Main, forceocl
+  IniWrite, %CurrentProc%, %SettingsFile%, Main, defaultproc
+  IniWrite, %Threads%, %SettingsFile%, Main, threads
+  IniWrite, %ScaleRatio%, %SettingsFile%, Main, ratio
+  IniWrite, %FTypeList%, %SettingsFile%, Main, filetypes
   Gdip_Shutdown(GDIPToken)
 }
 
