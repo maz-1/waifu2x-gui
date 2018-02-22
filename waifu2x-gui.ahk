@@ -4,12 +4,13 @@
 #include stdout2var.ahk
 #Include Gdip.ahk
 
+OnExit("ExitFunc")
+
 title1=Waifu2x-CPP GUI By Maz-1 (maz_1@foxmail.com)
 StringCaseSense, Off
 SetFormat, Float, 0.2
 WPath = %A_ScriptDir%
 Waifu2x_Exe = waifu2x-converter-cpp.exe
-Magick_Exe = magick.exe
 
 SetWorkingDir %WPath%
 
@@ -115,11 +116,11 @@ If !FileExist(WPath "\" Waifu2x_Exe)
   Msgbox, ,%L_Error%, %Waifu2x_Exe% %L_NotFound%
   exitapp
 }
-If !FileExist(WPath "\" Magick_Exe)
-{
-  Msgbox, ,%L_Error%, %Magick_Exe% %L_NotFound%
-  exitapp
-}
+;If !FileExist(WPath "\" Magick_Exe)
+;{
+;  Msgbox, ,%L_Error%, %Magick_Exe% %L_NotFound%
+;  exitapp
+;}
 
 w_width  = 650
 w_height = 224
@@ -181,7 +182,8 @@ Gui,Main:Add, Radio, x235 y97 w68 h14, %L_Level% 2
 ;Gui,Main:Add, Radio, x165 y116 w68 h14, %L_Level% 2
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x160 y155 w145 h44, %L_OutExt%
-Gui,Main:Add, Combobox, x165 y170 w135 vOutExt Choose1, png|jpg|bmp|tiff|webp
+Gui,Main:Add, Combobox, x165 y170 w135 vOutExt Choose1, png|jpg|bmp|tiff
+;|webp
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x160 y115 w145 h40, %L_BlkSize%
 Gui,Main:Add, Edit, x165 y130 w135 h18 vBLKSize
@@ -370,7 +372,6 @@ If (InPath = "" or OutPath = "")
 GuiControl, Main:Disable, VTab
 ;-=-=-=-=-=-=-=-=-=
 Waifu2x_Path = "%WPath%\%Waifu2x_Exe%"
-Magick_Path = "%WPath%\%Magick_Exe%"
 Params =
 Loop 1 {
    Goto Case-ConvMode-%ConvMode%
@@ -591,13 +592,36 @@ Calculate_Ratio(InWidth, InHeight, OutWidth, OutHeight) {
 Convert_File(InFile, Outfile, Params, HideCMD){
   Global Waifu2x_Path
   Global WPath
-  Global Magick_Path
   Global ConverterPID
   Params = %Params% -i "%InFile%" -o "%Outfile%"
   SB_SetText("Converting " . InFile)
   RunWait, %Waifu2x_Path% %Params% , %WPath%, %HideCMD%, ConverterPID
-  RunWait, %Magick_Path% "%Outfile%.png" "%Outfile%" , %WPath%, %HideCMD%
+  Convert_Format(Outfile . ".png", OutFile)
   FileDelete, %Outfile%.png
+}
+
+Convert_Format(InFile, OutFile)
+{
+  Result:=False
+	pBitmap := Gdip_CreateBitmapFromFile(InFile)
+	If (pBitmap<>0)
+	{
+    Width := Gdip_GetImageWidth(pBitmap), Height := Gdip_GetImageHeight(pBitmap)
+    pBitmapNew := Gdip_CreateBitmap(Width, Height)
+    GNew := Gdip_GraphicsFromImage(pBitmapNew),	Gdip_SetInterpolationMode(GNew, 7)
+    Gdip_DrawImage(GNew, pBitmap, 0, 0, Width, Height, 0, 0, Width, Height)
+    Gdip_SaveBitmapToFile(pBitmapNew, OutFile)
+    If FileExist(OutFile)
+      Result:=True
+    Gdip_DisposeImage(pBitmap),	Gdip_DeleteGraphics(GNew), Gdip_DisposeImage(pBitmapNew)
+  }
+	Return Result
+}
+
+ExitFunc() 
+{
+  Global GDIPToken
+  Gdip_Shutdown(GDIPToken)
 }
 
 ;$Esc::
