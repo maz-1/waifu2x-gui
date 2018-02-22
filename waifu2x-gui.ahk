@@ -162,7 +162,7 @@ Gui,Main:Add, Radio, x10 y132 w130 h14 Checked, %L_Denoise_Scale%
 Gui,Main:Add, GroupBox, x5 y155 w150 h44, %L_Model%
 Model_List:=""
 Model_Default:=1
-Loop, Files, models/* ,D
+Loop, Files, models\* ,D
 {
     If (Model_List = "")
       Model_List=%A_LoopFileName%
