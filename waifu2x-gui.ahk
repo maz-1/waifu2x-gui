@@ -438,7 +438,7 @@ Else
   InPath:=RegExReplace(InPath, "\\+", "\")
   If (InPath=OutPath)
     FilePrefix := "mai_"
-  Loop %InPath%*
+  Loop, Files, %InPath%*, F
   {
     SplitPath, A_LoopFileName, , , Ext, Name_no_ext
     If Ext in %FTypeList%
@@ -600,7 +600,8 @@ Convert_File(InFile, Outfile, Params, HideCMD){
   Global WPath
   Global ConverterPID
   Params = %Params% -i "%InFile%" -o "%Outfile%"
-  SB_SetText("Converting " . InFile)
+  SplitPath, InFile, InFileName
+  SB_SetText("Converting " . InFileName)
   RunWait, %Waifu2x_Path% %Params% , %WPath%, %HideCMD%, ConverterPID
   Convert_Format(Outfile . ".png", OutFile)
   FileDelete, %Outfile%.png
