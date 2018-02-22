@@ -15,11 +15,11 @@ Waifu2x_Exe = waifu2x-converter-cpp.exe
 SetWorkingDir %WPath%
 
 HideCMD:="Hide"
-ConverterPID:=0
-
 FTypeInit:="png,jpg,jpeg,jfif,tif,tiff,bmp,tga"
-
 GDIPToken := Gdip_Startup()
+
+ConverterPID:=0
+ProcessorsCmdOut:=""
 
 fName = %1%
 DirInit =
@@ -248,12 +248,14 @@ LV_ModifyCol(2, 50)
 LV_ModifyCol(3, 265)
 Gui,Proc: Add, Button, x5 y230 w170 h30 gProcOk, %L_OK%
 Gui,Proc: Add, Button, x185 y230 w170 h30 gProcCancel, %L_Cancel%
+Control, uncheck,,, ahk_id %hManualProc%
 Return
 
 ProcInit:
 Gui,Proc: Default
 LV_Delete()
-ProcessorsCmdOut:=StdOutStream(Waifu2x_Exe " --list-processor")
+If (ProcessorsCmdOut="")
+  ProcessorsCmdOut:=StdOutStream(Waifu2x_Exe " --list-processor")
 Loop, Parse, ProcessorsCmdOut,`r,`n
 {
   RegExMatch(A_LoopField, "O)^\s{3}(\d):\s+(.*?)\s+\((\S+)\s*\):\snum_core=(\d+)$" , OutputVar)
@@ -261,14 +263,18 @@ Loop, Parse, ProcessorsCmdOut,`r,`n
     LV_Add( ,OutputVar.Value(1), OutputVar.Value(3), OutputVar.Value(2))
 }
 Gui,Main: Default
-Control, uncheck,,, ahk_id %hManualProc%
 Gui,Proc: Show, ,%L_SelProc%
 Return
 
 LVSelect:
 Gui,Proc: Submit, nohide
 If (LV_GetNext(0)<>0)
-Control, check,,, ahk_id %hManualProc%
+{
+  If (A_GuiControlEvent="Normal")
+    Control, check,,, ahk_id %hManualProc%
+  Else If (A_GuiControlEvent="DoubleClick")
+    GoSub ProcOk
+}
 Return
 
 ProcOk:
