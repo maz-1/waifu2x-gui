@@ -98,6 +98,9 @@ L_AutoProc:="Select processor automatically"
 L_CancelTip:="Press Ctrl+K to cancel"
 L_Font:="Tahoma"
 
+If !FileExist(I18nFile)
+FileInstall, i18n.ini, %I18nFile%
+
 FileEncoding ,UTF-8
 FileRead, I18N, %I18nFile%
 
