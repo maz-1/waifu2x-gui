@@ -309,6 +309,7 @@ for index, element in ProcessorsArr
   LV_Add( ,ArrayTmp[1], ArrayTmp[2], ArrayTmp[3], ArrayTmp[4])
 }
 Gui,Main: Default
+Gui,Main:+Disabled
 Gui,Proc: Show, ,%L_SelProc%
 Return
 
@@ -351,11 +352,17 @@ Else
    ControlSetText, , %L_AutoProc%, ahk_id %hBtnProcWin%
    CurrentProc:=""
 }
+Gui,Main:-Disabled
 Gui,Proc: Hide
 Return
 
 ProcCancel:
+Gui,Main:-Disabled
 Gui,Proc: Hide
+Return
+
+ProcGuiclose:
+GoSub ProcCancel
 Return
 
 CancelRatio:
@@ -399,15 +406,7 @@ GuiControl, Res:Text, RatioCalcTxt, % RatioCalc
 Return
 
 ResGuiclose:
-Gui,Main:-Disabled
-Gui,Res:Hide
-Return
-
-^K::
-WinGet, active_id, ID, A
-GuiControlGet, Enabled, Main:Enabled, VTab
-If (active_id=MainGuiHwnd and Enabled=False)
-  Process, Close, %ConverterPID%
+GoSub CancelRatio
 Return
 
 Process:
@@ -490,6 +489,7 @@ Else
   }
 }
 GuiControl, Main:Enable, VTab
+ConverterPID:=0
 ControlSetText, , %L_OK%, ahk_id %hBtnGo%
 DllCall("SetCursor","UInt",NormalCur)
 HideCMD = Hide
@@ -502,6 +502,7 @@ DllCall("DestroyCursor","Uint",NormalCur)
 exitapp
 
 SelectInPath:
+Gui,Main:+OwnDialogs
 StringReplace, FTypeFilter, FTypeInit, `, , `; *.,,All
 FTypeFilter = *.%FTypeFilter%
 FileSelectFile, InPathFromDiag, , , %L_ChooseInPath%, %FTypeFilter%
@@ -510,6 +511,7 @@ Set_Edit_Content(InPathFromDiag)
 Return
 
 SelectOutPath:
+Gui,Main:+OwnDialogs
 FileSelectFolder, OutPathFromDiag , , , %L_ChooseOutPath%
 if ! ErrorLevel
 GuiControl, , % HOutPath, % OutPathFromDiag
@@ -518,6 +520,7 @@ Return
 MainGuiContextMenu:
 if A_GuiControl = InPathBtn
 {
+  Gui,Main:+OwnDialogs
   FileSelectFolder, InPathFromDiag , , , %L_ChooseInPath%
   if ! ErrorLevel
     Set_Edit_Content(InPathFromDiag)
@@ -531,8 +534,8 @@ Return
 
 On_WM_MOUSEMOVE(){
   Global BusyCur
-  GuiControlGet, Enabled, Main:Enabled, VTab
-  If (Enabled = false)
+  Global ConverterPID
+  If (ConverterPID<>0)
   {
 	  DllCall("SetCursor","UInt",BusyCur)
 	  Return
@@ -712,5 +715,17 @@ ExitFunc()
   Gdip_Shutdown(GDIPToken)
 }
 
-;$Esc::
-;exitapp
+^K::
+WinGet, active_id, ID, A
+GuiControlGet, Enabled, Main:Enabled, VTab
+If (active_id=MainGuiHwnd and Enabled=False)
+  Process, Close, %ConverterPID%
+ConverterPID:=0
+Return
+
+$Esc::
+WinGet, active_id, ID, A
+GuiControlGet, Enabled, Main:Enabled, VTab
+If (active_id=MainGuiHwnd and Enabled=True)
+  exitapp
+Return
