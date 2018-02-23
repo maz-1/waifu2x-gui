@@ -40,9 +40,9 @@ ProcessorsArr:=[]
 ProcessorsCmdOut:=StdOutStream(Waifu2x_Exe " --list-processor")
 Loop, Parse, ProcessorsCmdOut,`r,`n
 {
-  RegExMatch(A_LoopField, "O)^\s{3}(\d):\s+(.*?)\s+\((\S+)\s*\):\snum_core=(\d+)$" , OutputVar)
-  If (OutputVar.Value(1) <> "")
-    ProcessorsArr.Push(OutputVar.Value(1) . "|" . OutputVar.Value(3) . "|" . OutputVar.Value(2))
+  RegExMatch(A_LoopField, "O)^\s{3}(\d):\s+(.*?)\s+\((\S+)\s*\):\snum_core=(\d+)$" , OutVar)
+  If (OutVar.Value(1) <> "")
+    ProcessorsArr.Push(OutVar.Value(1) . "|" . OutVar.Value(3) . "|" . OutVar.Value(4) . "|" . OutVar.Value(2))
 }
 
 
@@ -88,6 +88,7 @@ L_NotFound := "not found"
 L_NotValidDir := "Not a valid directory"
 L_Type:="Type"
 L_Name:="Name"
+L_Cores:="Cores"
 L_SelProc:="Select processor"
 L_ManualProc:="Manually specify processor"
 L_SelProc:="Select processor"
@@ -125,14 +126,9 @@ Loop, Parse, I18N,`r,`n
 
 If !FileExist(WPath "\" Waifu2x_Exe)
 {
-  Msgbox, ,%L_Error%, %Waifu2x_Exe% %L_NotFound%
+  Msgbox, 262192, %L_Error%, %Waifu2x_Exe% %L_NotFound%
   exitapp
 }
-;If !FileExist(WPath "\" Magick_Exe)
-;{
-;  Msgbox, ,%L_Error%, %Magick_Exe% %L_NotFound%
-;  exitapp
-;}
 
 w_width  = 650
 w_height = 224
@@ -253,7 +249,7 @@ if FileExist(SettingsFile)
       SelProcNum:=ArrayTmp[1]
       CurrentProc:=StoredDPROC
       ManualProc:=1
-      ProcsSetText(ArrayTmp[2], ArrayTmp[3])
+      ProcsSetText(ArrayTmp[2], ArrayTmp[4])
     }
   IniRead, StoredThreads, %SettingsFile%, Main, threads
     If (StoredThreads <= ProcessorCount)
@@ -293,13 +289,14 @@ Gui,Proc: Font, s8, %L_Font%
 Gui,Proc:+ToolWindow
 Gui,Proc:+OwnerMain
 Gui,Proc: Add, CheckBox, x5 y5 h14 vManualProcChecked hwndhManualProc -Checked, %L_ManualProc%
-Gui,Proc: Add, ListView, x5 y25 w350 h200 vProcListLV gLVSelect AltSubmit NoSortHdr -Multi -LV0x10, No.|%L_Type%|%L_Name%
+Gui,Proc: Add, ListView, x5 y25 w400 h200 vProcListLV gLVSelect AltSubmit NoSortHdr -Multi -LV0x10, No.|%L_Type%|%L_Cores%|%L_Name%
 Gui,Proc: Default
 LV_ModifyCol(1, 30)
 LV_ModifyCol(2, 50)
-LV_ModifyCol(3, 265)
-Gui,Proc: Add, Button, x5 y230 w170 h30 gProcOk, %L_OK%
-Gui,Proc: Add, Button, x185 y230 w170 h30 gProcCancel, %L_Cancel%
+LV_ModifyCol(3, 50)
+LV_ModifyCol(4, 265)
+Gui,Proc: Add, Button, x5 y230 w195 h30 gProcOk, %L_OK%
+Gui,Proc: Add, Button, x210 y230 w195 h30 gProcCancel, %L_Cancel%
 Control, uncheck,,, ahk_id %hManualProc%
 Return
 
@@ -309,7 +306,7 @@ LV_Delete()
 for index, element in ProcessorsArr
 {
   ArrayTmp:=StrSplit(element , "|")
-  LV_Add( ,ArrayTmp[1], ArrayTmp[2], ArrayTmp[3])
+  LV_Add( ,ArrayTmp[1], ArrayTmp[2], ArrayTmp[3], ArrayTmp[4])
 }
 Gui,Main: Default
 Gui,Proc: Show, ,%L_SelProc%
@@ -332,7 +329,8 @@ Gui,Proc: Default
 RowNum:=LV_GetNext(0)
 LV_GetText(ProcNum, RowNum, 1)
 LV_GetText(ProcType, RowNum, 2)
-LV_GetText(ProcName, RowNum, 3)
+LV_GetText(ProcCores, RowNum, 3)
+LV_GetText(ProcName, RowNum, 4)
 ManualProc:=ManualProcChecked
 If (ManualProc=1)
 {
@@ -340,11 +338,11 @@ If (ManualProc=1)
   {
     SelProcNum:=ProcNum
     ProcsSetText(ProcType, ProcName)
-    CurrentProc:=ProcNum . "|" ProcType . "|" . ProcName
+    CurrentProc:=ProcNum . "|" ProcType . "|" ProcCores . "|" . ProcName
   }
   Else
   {
-    Msgbox, %L_NoItemSelected%
+    Msgbox, 262192, %L_Error%, %L_NoItemSelected%
     Return
   }
 }
@@ -378,7 +376,7 @@ IfExist, %InPath%
   pBM := Gdip_CreateBitmapFromFile(InPath)
   If (pBM = 0)
   {
-    Msgbox, %L_FileCorrupt%
+    Msgbox, 262192, %L_Error%, %L_FileCorrupt%
     Gdip_DisposeImage(pBM)
   }
   Else
@@ -652,27 +650,36 @@ Convert_File(InFile, Outfile, Params, HideCMD){
 Convert_Format(InFile, OutFile)
 {
   Result:=False
-	pBitmap := Gdip_CreateBitmapFromFile(InFile)
-	If (pBitmap<>0)
-	{
-    Width := Gdip_GetImageWidth(pBitmap), Height := Gdip_GetImageHeight(pBitmap)
-    pBitmapNew := Gdip_CreateBitmap(Width, Height)
-    GNew := Gdip_GraphicsFromImage(pBitmapNew),	Gdip_SetInterpolationMode(GNew, 7)
-    Gdip_DrawImage(GNew, pBitmap, 0, 0, Width, Height, 0, 0, Width, Height)
-    Gdip_SaveBitmapToFile(pBitmapNew, OutFile)
-    If FileExist(OutFile)
-      Result:=True
-    Gdip_DisposeImage(pBitmap),	Gdip_DeleteGraphics(GNew), Gdip_DisposeImage(pBitmapNew)
+  If (SubStr(InFile, -2)<>SubStr(OutFile, -2))
+  {
+    pBitmap := Gdip_CreateBitmapFromFile(InFile)
+    If (pBitmap<>0)
+    {
+      Width := Gdip_GetImageWidth(pBitmap), Height := Gdip_GetImageHeight(pBitmap)
+      pBitmapNew := Gdip_CreateBitmap(Width, Height)
+      GNew := Gdip_GraphicsFromImage(pBitmapNew),	Gdip_SetInterpolationMode(GNew, 7)
+      Gdip_DrawImage(GNew, pBitmap, 0, 0, Width, Height, 0, 0, Width, Height)
+      Gdip_SaveBitmapToFile(pBitmapNew, OutFile)
+      If FileExist(OutFile)
+        Result:=True
+      Gdip_DisposeImage(pBitmap),	Gdip_DeleteGraphics(GNew), Gdip_DisposeImage(pBitmapNew)
+    }
   }
+  Else
+    FileMove, InFile, OutFile
 	Return Result
 }
 
 ProcsSetText(ProcType, ProcName)
 {
   Global hBtnProcWin
-  If (StrLen(ProcName) > 21)
-    ProcName:=SubStr(ProcName, 1, 18) . "..."
-  ControlSetText, , %ProcName%`r`n%ProcType%, ahk_id %hBtnProcWin%
+  
+  If (StrLen(ProcName) < 20)
+    ControlSetText, , %ProcName%`r`n(%ProcType%), ahk_id %hBtnProcWin%
+  Else If (StrLen(ProcName)+StrLen(ProcType) > 38)
+    ControlSetText, , % SubStr(ProcName, 1, 35) . "... (" . ProcType . ")", ahk_id %hBtnProcWin%
+  Else
+    ControlSetText, , %ProcName% (%ProcType%), ahk_id %hBtnProcWin%
 }
 
 HasVal(haystack, needle) {
