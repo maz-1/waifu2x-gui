@@ -133,10 +133,6 @@ If !FileExist(WPath "\" Waifu2x_Exe)
   exitapp
 }
 
-w_width  = 650
-w_height = 224
-w_x := (A_ScreenWidth - w_width)/5
-w_y := (A_ScreenHeight - w_height)/2
 Gui,Main: Font, s8, %L_Font%
 ;Gui,Main:+ToolWindow
 Gui,Main:+HwndMainGuiHwnd
@@ -149,14 +145,14 @@ Gui,Main:Add, Tab2, x0 y0 w0 h0 -Wrap vVTab, OneTab
 Gui,Main:Tab, OneTab
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, Text, x5 y12 w60 h30 Center, %L_InPath%
-Gui,Main:Add, Edit, % "HwndHInPath r1 vInPath x70 y10 h30 w" w_width-120 " +E" WS_EX_ACCEPTFILES, %fName%
-Gui,Main:add,Button, % "vInPathBtn gSelectInPath y9 w30 h23 x" w_width - 40 , ...
+Gui,Main:Add, Edit, HwndHInPath r1 vInPath x70 y10 h30 w530 +E%WS_EX_ACCEPTFILES%, %fName%
+Gui,Main:add,Button, vInPathBtn gSelectInPath y9 w30 h23 x610 , ...
 InPath_TT = %L_InPathTip%
 InPathBtn_TT = %L_InPathBtnTip%
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, Text, x5 y47 w60 h15 Center, %L_OutPath%
-Gui,Main:Add, Edit, % "HwndHOutPath r1 vOutPath x70 y45 h30 w" w_width-120 " +E" WS_EX_ACCEPTFILES, %DirInit%
-Gui,Main:add,Button, % "gSelectOutPath y44 w30 h23 x" w_width - 40 , ...
+Gui,Main:Add, Edit, HwndHOutPath r1 vOutPath x70 y45 h30 w530 +E%WS_EX_ACCEPTFILES%, %DirInit%
+Gui,Main:add,Button, gSelectOutPath y44 w30 h23 x610 , ...
 OutPath_TT = %L_OutPathTip%
 ;-=-=-=-=-=-=-=-=-=
 BusyCur:=DllCall("LoadCursor","UInt",NULL,"Int",32514,"UInt") ;IDC_WAIT
@@ -166,7 +162,6 @@ OnMessage(WM_DROPFILES, "On_WM_DROPFILES")
 OnMessage(WM_MOUSEMOVE, "On_WM_MOUSEMOVE")
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x5 y80 w150 h75, %L_ConvMode%
-;Gui,Main:Add, GroupBox, x5 y80 w150 h75, %L_ConvMode%
 Gui,Main:Add, Radio, hwndhConv1 x10 y96 w130 h14 vConvMode, %L_Denoise%
 Gui,Main:Add, Radio, hwndhConv2 x10 y114 w130 h14, %L_Scale%
 Gui,Main:Add, Radio, hwndhConv3 x10 y132 w130 h14 Checked, %L_Denoise_Scale%
@@ -186,7 +181,6 @@ Loop, Files, models\* ,D
 Gui,Main:Add, Combobox, x10 y170 w140 vOutModel Choose%Model_Default%, %Model_List%
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x160 y80 w145 h35, %L_Denoise_Level%
-;Gui,Main:Add, GroupBox, x160 y80 w135 h75, %L_Denoise_Level%
 Gui,Main:Add, Radio, hwndhdenoise1 x165 y97 w45 h14 vDenoiseLevel Checked, 1
 Gui,Main:Add, Radio, hwndhdenoise2 x210 y97 w45 h14, 2
 Gui,Main:Add, Radio, hwndhdenoise3 x255 y97 w45 h14, 3
@@ -217,13 +211,12 @@ ScaleGenBtn_TT = %L_ScaleGenTip%
 Gui,Main:Add, GroupBox, x470 y117 w170 h40, %L_ProcTheseTypes%
 Gui,Main:Add, Edit, x475 y133 w160 h20 vFTypeList, % FTypeInit
 ;-=-=-=-=-=-=-=-=-=
-;Gui,Main:Tab
 Gui,Main:Add, Button, x469 y160 w172 h39 hwndhBtnGo gProcess vProcessV, %L_Go%
 ProcessV_TT = %L_GoTip%
+;Gui,Main:Tab
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, StatusBar,, %L_Ready%
 ;-=-=-=-=-=-=-=-=-=
-;tobedone
 if FileExist(SettingsFile)
 {
   IniRead, StoredConvMode, %SettingsFile%, Main, convmode
@@ -263,30 +256,24 @@ if FileExist(SettingsFile)
     GuiControl, Main:Text, FTypeList, % StoredFtypes
 }
 ;-=-=-=-=-=-=-=-=-=
-Gui,Main:Show, x%w_x% y%w_y% w%w_width% h%w_height%, %title1%
+Gui,Main:Show, , %title1%
 ;-=-=-=-=-=-=-=-=-=
 
-
-
 RatioCalc =
-restool_w  = 200
-restool_h = 120
-restool_x := (A_ScreenWidth - restool_w)/3
-restool_y := (A_ScreenHeight - restool_h)/2
 ResAvailable = 800x600|1024x768|1280x720|1280x800|1360x768|1366x768|1440x900|1680x1050|1920x1080|1920x1200|1920x1440|2048x1536|2560x1440|3200x1800|4096x2160
 Gui,Res: Font, s8, %L_Font%
 Gui,Res:+ToolWindow
 Gui,Res:+OwnerMain
 ;-=-=-=-=-=-=-=-=-=
 Gui,Res:Add, Text, x5 y12 w60 h30 Center, %L_Resolution%
-Gui,Res:Add, Combobox, % "vResForCalc gResCalc x70 y10 w" restool_w-80, %ResAvailable%
+Gui,Res:Add, Combobox, vResForCalc gResCalc x70 y10 w120, %ResAvailable%
 Sysget, MonResX, 0
 Sysget, MonResY, 1
 GuiControl, Res:Text, ResForCalc, % MonResX . "x" . MonResY
-Gui,Res:Add, GroupBox, % "x10 y35 h37 w" restool_w-20 , %L_CalcRatio%
-Gui,Res:Add, Text, % "vRatioCalcTxt x15 y50 h20 w" restool_w-30 , 0
+Gui,Res:Add, GroupBox, x10 y35 h37 w180 , %L_CalcRatio%
+Gui,Res:Add, Text, vRatioCalcTxt x15 y50 h20 w170 , 0
 Gui,Res:Add, Button, x9 y80 w85 h30 gSetRatio, %L_OK%
-Gui,Res:Add, Button, % "gCancelRatio y80 w85 h30 x" restool_w-95, %L_Cancel%
+Gui,Res:Add, Button, gCancelRatio y80 w85 h30 x105, %L_Cancel%
 ;-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Proc: Font, s8, %L_Font%
 Gui,Proc:+ToolWindow
@@ -393,7 +380,7 @@ IfExist, %InPath%
   {
     BMWidth:= Gdip_GetImageWidth(pBM)
     BMHeight:= Gdip_GetImageHeight(pBM)
-    Gui,Res:Show, x%restool_x% y%restool_y% w%restool_w% h%restool_h%, %L_CalcTitle%
+    Gui,Res:Show, , %L_CalcTitle%
     Gui,Main:+Disabled
     Gdip_DisposeImage(pBM)
     Goto ResCalc
