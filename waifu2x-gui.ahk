@@ -213,7 +213,8 @@ Gui,Main:Add, Edit, x475 y133 w160 h20 vFTypeList, % FTypeInit
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, Button, x469 y160 w172 h39 hwndhBtnGo gProcess vProcessV, %L_Go%
 ProcessV_TT = %L_GoTip%
-;Gui,Main:Tab
+Gui,Main:Tab
+;Gui,Main:Add, Edit, x5 y205 w635 r6 vVerboseLog ReadOnly
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, StatusBar,, %L_Ready%
 ;-=-=-=-=-=-=-=-=-=
@@ -329,7 +330,7 @@ If (ManualProc=1)
   {
     SelProcNum:=ProcNum
     ProcsSetText(ProcType, ProcName)
-    CurrentProc:=ProcNum . "|" ProcType . "|" ProcCores . "|" . ProcName
+    CurrentProc:=ProcNum . "|" . ProcType . "|" . ProcCores . "|" . ProcName
   }
   Else
   {
@@ -591,7 +592,6 @@ Set_Edit_Content(DroppedPath) {
    Global L_WrongType
    Global L_PicDirOnly
 ;-=-=-=-=-=-=-=-=-=
-   ;Msgbox, % A_GuiControl
    IfInString, DroppedPath, `r`n
    {
      Msgbox, 262192, %L_CantHandle%, %L_OnePathAllowed%
@@ -605,7 +605,6 @@ Set_Edit_Content(DroppedPath) {
    Else
    {
      InputIsDir := false
-     ;SplitPath, DroppedPath, Name, Dir, Ext, Name_no_ext
      SplitPath, DroppedPath, , Dir, Ext
      If Ext Not In % FTypeInit
      {
@@ -636,6 +635,7 @@ Convert_File(InFile, Outfile, Params, HideCMD){
   SplitPath, InFile, InFileName
   SB_SetText("Converting " . InFileName)
   RunWait, %Waifu2x_Path% %Params% , %WPath%, %HideCMD%, ConverterPID
+  ;StdOutStream( Waifu2x_Path . " " Params. , , WPath)
   Convert_Format(Outfile . ".png", OutFile)
   FileDelete, %Outfile%.png
 }
