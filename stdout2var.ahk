@@ -1,4 +1,4 @@
-StdOutStream( sCmd, Callback := "", WorkingDir:=0) { ; Modified  :  maz-1 https://gist.github.com/maz-1/768bf7938e533907d54bff276db80904
+StdOutStream( sCmd, Callback := "", WorkingDir:=0, ByRef ProcessID:=0) { ; Modified  :  maz-1 https://gist.github.com/maz-1/768bf7938e533907d54bff276db80904
   Static StrGet := "StrGet"           ; Modified  :  SKAN 31-Aug-2013 http://goo.gl/j8XJXY
                                       ; Thanks to :  HotKeyIt         http://goo.gl/IsH1zs
                                       ; Original  :  Sean 20-Feb-2007 http://goo.gl/mxCdn
@@ -106,6 +106,7 @@ StdOutStream( sCmd, Callback := "", WorkingDir:=0) { ; Modified  :  maz-1 https:
    
   hProcess := NumGet( PROCESS_INFORMATION, 0 )                 
   hThread  := NumGet( PROCESS_INFORMATION, A_PtrSize )  
+  ProcessID:= NumGet( PROCESS_INFORMATION, A_PtrSize*2 )  
 
   DllCall( "CloseHandle", UInt,hPipeWrite )
 

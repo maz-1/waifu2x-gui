@@ -16,7 +16,6 @@ SettingsFile:=A_ScriptDir . "\settings.ini"
 
 SetWorkingDir %WPath%
 
-HideCMD:="Hide"
 FTypeInit:="png,jpg,jpeg,jfif,tif,tiff,bmp,tga"
 GDIPToken := Gdip_Startup()
 
@@ -67,7 +66,6 @@ L_Threads := "Threads"
 L_ScaleRatio := "Scale ratio"
 L_ProcTheseTypes := "Process these filetypes"
 L_Go := "Go"
-L_GoTip := "Right click to run and show cmd window"
 L_Ready := "Ready"
 L_Error := "Error"
 L_EmptyPath := "Input path or output path not specified"
@@ -212,11 +210,11 @@ Gui,Main:Add, GroupBox, x470 y117 w170 h40, %L_ProcTheseTypes%
 Gui,Main:Add, Edit, x475 y133 w160 h20 vFTypeList, % FTypeInit
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, Button, x469 y160 w172 h39 hwndhBtnGo gProcess vProcessV, %L_Go%
-ProcessV_TT = %L_GoTip%
 Gui,Main:Tab
-;Gui,Main:Add, Edit, x5 y205 w635 r6 vVerboseLog ReadOnly
-;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, StatusBar,, %L_Ready%
+Gui,Main:Font, s7, Lucida Console
+Gui,Main:Add, Edit, x5 y205 w635 r10 vVerboseLog hwndhVLog ReadOnly
+;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 ;-=-=-=-=-=-=-=-=-=
 if FileExist(SettingsFile)
 {
@@ -411,6 +409,7 @@ If (InPath = "" or OutPath = "")
   Return
 }
 ControlSetText, , %L_CancelTip%, ahk_id %hBtnGo%
+;GuiControl, Main:Text, VerboseLog
 ;-=-=-=-=-=-=-=-=-=
 GuiControl, Main:Disable, VTab
 ;-=-=-=-=-=-=-=-=-=
@@ -448,7 +447,7 @@ If (BLKSize <> "")
 If BLKSize is integer
   Params := Params " --block_size " BLKSize
 ;-=-=-=-=-=-=-=-=-=
-;Msgbox % Params
+GuiControl, Main:Text, VerboseLog, %Waifu2x_Path% %Params%`r`n
 OutPath:=RegExReplace(OutPath, " *$", "\")
 OutPath:=RegExReplace(OutPath, "\\+", "\")
 If( InStr( FileExist(OutPath), "D") = 0 )
@@ -460,7 +459,7 @@ If (InputIsDir=0)
   If (InPathDir=OutPath)
     FilePrefix := "mai_"
   Outfile=%OutPath%%FilePrefix%%Name_no_ext%.%OutExt%
-  Convert_File(InPath, Outfile, Params, HideCMD)
+  Convert_File(InPath, Outfile, Params)
 }
 Else
 {
@@ -475,15 +474,14 @@ Else
     {
       InFile=%InPath%\%A_LoopFileName%
       Outfile=%OutPath%%FilePrefix%%Name_no_ext%.%OutExt%
-      Convert_File(InFile, Outfile, Params, HideCMD)
+      Convert_File(InFile, Outfile, Params)
     }
   }
 }
 GuiControl, Main:Enable, VTab
 ConverterPID:=0
-ControlSetText, , %L_OK%, ahk_id %hBtnGo%
+ControlSetText, , %L_Go%, ahk_id %hBtnGo%
 DllCall("SetCursor","UInt",NormalCur)
-HideCMD = Hide
 SB_SetText(L_Ready)
 Return
 
@@ -516,11 +514,10 @@ if A_GuiControl = InPathBtn
   if ! ErrorLevel
     Set_Edit_Content(InPathFromDiag)
 }
-if A_GuiControl = ProcessV
-{
-  HideCMD = 
-  Goto Process
-}
+;if A_GuiControl = ProcessV
+;{
+;  Goto Process
+;}
 Return
 
 On_WM_MOUSEMOVE(){
@@ -627,17 +624,28 @@ Calculate_Ratio(InWidth, InHeight, OutWidth, OutHeight) {
     Return RatioH
 }
 
-Convert_File(InFile, Outfile, Params, HideCMD){
+Convert_File(InFile, Outfile, Params){
   Global Waifu2x_Path
   Global WPath
   Global ConverterPID
   Params = %Params% -i "%InFile%" -o "%Outfile%"
   SplitPath, InFile, InFileName
   SB_SetText("Converting " . InFileName)
-  RunWait, %Waifu2x_Path% %Params% , %WPath%, %HideCMD%, ConverterPID
-  ;StdOutStream( Waifu2x_Path . " " Params. , , WPath)
+  ;RunWait, %Waifu2x_Path% %Params% , %WPath%, %HideCMD%, ConverterPID
+  StdOutStream( Waifu2x_Path . " " . Params, "DumpCmdOut", WPath, ConverterPID)
   Convert_Format(Outfile . ".png", OutFile)
   FileDelete, %Outfile%.png
+}
+
+DumpCmdOut(TxtNew, TxtIndex)
+{
+  Global MainGuiHwnd
+  Global hVLog
+  GuiControlGet, TxtOrig, , VerboseLog
+  GuiControl, Main:Text, VerboseLog, %TxtOrig%%TxtNew%
+  WinGet, active_id, ID, A
+  If (active_id=MainGuiHwnd)
+    ControlSend, , ^{End}, ahk_id %hVLog%
 }
 
 Convert_Format(InFile, OutFile)
@@ -659,7 +667,10 @@ Convert_Format(InFile, OutFile)
     }
   }
   Else
-    FileMove, InFile, OutFile
+  {
+    FileMove, %InFile%, %OutFile%
+    Result:=ErrorLevel
+	}
 	Return Result
 }
 
