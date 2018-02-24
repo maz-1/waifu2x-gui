@@ -4,7 +4,7 @@
 #include stdout2var.ahk
 #Include Gdip.ahk
 
-OnExit("ExitFunc")
+#Include Class_CtlColors.ahk
 
 title1=Waifu2x-CPP GUI By Maz-1 (maz_1@foxmail.com)
 StringCaseSense, Off
@@ -23,6 +23,7 @@ ConverterPID:=0
 SelProcNum:=0
 ManualProc:=0
 CurrentProc:=""
+LoopState:=False
 
 fName = %1%
 DirInit =
@@ -94,7 +95,9 @@ L_SelProcInfo:="Click to manually specify processor"
 L_NoItemSelected:="No item selected"
 L_AutoProc:="Select processor automatically"
 L_CancelTip:="Press Ctrl+K to cancel"
+L_SBarPrefix:="Converting "
 L_Font:="Tahoma"
+L_ShowLog:="Show command line output"
 
 If !FileExist(I18nFile)
 FileInstall, i18n.ini, %I18nFile%
@@ -131,8 +134,9 @@ If !FileExist(WPath "\" Waifu2x_Exe)
   exitapp
 }
 
+h_withlog:=350
+h_withoutlog:=240
 Gui,Main: Font, s8, %L_Font%
-;Gui,Main:+ToolWindow
 Gui,Main:+HwndMainGuiHwnd
 ;-=-=-=-=-=-=-=-=-=
 WM_DROPFILES := 0x0233
@@ -142,20 +146,19 @@ WM_MOUSEMOVE := 0x200
 Gui,Main:Add, Tab2, x0 y0 w0 h0 -Wrap vVTab, OneTab
 Gui,Main:Tab, OneTab
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, Text, x5 y12 w60 h30 Center, %L_InPath%
-Gui,Main:Add, Edit, HwndHInPath r1 vInPath x70 y10 h30 w530 +E%WS_EX_ACCEPTFILES%, %fName%
+Gui,Main:Add, Text, x5 y12 w60 Center, %L_InPath%
+Gui,Main:Add, Edit, HwndHInPath r1 vInPath x70 y10 h30 w530 gRevertInPathColor +E%WS_EX_ACCEPTFILES%, %fName%
 Gui,Main:add,Button, vInPathBtn gSelectInPath y9 w30 h23 x610 , ...
 InPath_TT = %L_InPathTip%
 InPathBtn_TT = %L_InPathBtnTip%
 ;-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, Text, x5 y47 w60 h15 Center, %L_OutPath%
-Gui,Main:Add, Edit, HwndHOutPath r1 vOutPath x70 y45 h30 w530 +E%WS_EX_ACCEPTFILES%, %DirInit%
+Gui,Main:Add, Text, x5 y47 w60 Center, %L_OutPath%
+Gui,Main:Add, Edit, HwndHOutPath r1 vOutPath x70 y45 h30 w530 gRevertOutPathColor +E%WS_EX_ACCEPTFILES%, %DirInit%
 Gui,Main:add,Button, gSelectOutPath y44 w30 h23 x610 , ...
 OutPath_TT = %L_OutPathTip%
 ;-=-=-=-=-=-=-=-=-=
 BusyCur:=DllCall("LoadCursor","UInt",NULL,"Int",32514,"UInt") ;IDC_WAIT
 NormalCur:=DllCall("LoadCursor","UInt",NULL,"Int",32512,"UInt") ;IDC_ARROW
-InputIsDir := false
 OnMessage(WM_DROPFILES, "On_WM_DROPFILES")
 OnMessage(WM_MOUSEMOVE, "On_WM_MOUSEMOVE")
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -176,7 +179,7 @@ Loop, Files, models\* ,D
     If (A_LoopFileName = "models")
       Model_Default:=A_Index
 }
-Gui,Main:Add, Combobox, x10 y170 w140 vOutModel Choose%Model_Default%, %Model_List%
+Gui,Main:Add, DropDownList, x10 y170 w140 vOutModel Choose%Model_Default%, %Model_List%
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x160 y80 w145 h35, %L_Denoise_Level%
 Gui,Main:Add, Radio, hwndhdenoise1 x165 y97 w45 h14 vDenoiseLevel Checked, 1
@@ -184,11 +187,11 @@ Gui,Main:Add, Radio, hwndhdenoise2 x210 y97 w45 h14, 2
 Gui,Main:Add, Radio, hwndhdenoise3 x255 y97 w45 h14, 3
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x160 y155 w145 h44, %L_OutExt%
-Gui,Main:Add, Combobox, x165 y170 w135 vOutExt Choose1, png|jpg|bmp|tiff
+Gui,Main:Add, DropDownList, x165 y170 w135 vOutExt Choose1, png|jpg|bmp|tiff
 ;|webp
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x160 y115 w145 h40, %L_BlkSize%
-Gui,Main:Add, Edit, x165 y130 w135 h18 vBLKSize
+Gui,Main:Add, Edit, x165 y130 w135 h18 Number vBLKSize
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x310 y80 w155 h119, %L_ProcOpt%
 Gui,Main:Add, Checkbox, hwndhnogpu x315 y97 w140 h20 vDisableGPU, %L_DisableGPU%
@@ -197,65 +200,79 @@ Gui,Main:Add, Button, x314 y136 w147 h35 vSelProcInfoV hwndhBtnProcWin gProcInit
 SelProcInfoV_TT:=L_SelProcInfo
 EnvGet, ProcessorCount, NUMBER_OF_PROCESSORS
 Gui,Main:Add, Text, x315 y177 w145 h20, %L_Threads%
-Gui,Main:Add, Edit, x390 y175 w70 h18 vThreads, % ProcessorCount
+Gui,Main:Add, Edit, x390 y175 w70 h18 Number vThreads, % ProcessorCount
 Gui,Main:Add, UpDown, % "range1-" ProcessorCount, % ProcessorCount
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x470 y80 w170 h37, %L_ScaleRatio%
-Gui,Main:Add, Edit, x475 y95 w130 h18 vScaleRatio, 2
+Gui,Main:Add, Edit, x475 y95 w130 h18 vScaleRatio gScaleRatioCheck, 2
 Gui,Main:Add, UpDown, range1-50, 2
 Gui,Main:Add, Button, x610 y94 w25 h20 vScaleGenBtn gScaleGen, ...
 ScaleGenBtn_TT = %L_ScaleGenTip%
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x470 y117 w170 h40, %L_ProcTheseTypes%
-Gui,Main:Add, Edit, x475 y133 w160 h20 vFTypeList, % FTypeInit
+Gui,Main:Add, Edit, x475 y133 w160 h20 vFTypeList gRevertFTypeListColor hwndhFTypeList, % FTypeInit
+CtlColors.Attach(hFTypeList, "", "")
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, Button, x469 y160 w172 h39 hwndhBtnGo gProcess vProcessV, %L_Go%
+Hotkey, IfWinActive, ahk_id %MainGuiHwnd%
+Hotkey, ^k, KillConverter
+Gui,Main:Add, Checkbox, x5 y202 vShowLog gToggleLog, %L_ShowLog%
 Gui,Main:Tab
 Gui,Main:Add, StatusBar,, %L_Ready%
 Gui,Main:Font, s7, Lucida Console
-Gui,Main:Add, Edit, x5 y205 w635 r10 vVerboseLog hwndhVLog ReadOnly
+Gui,Main:Add, Edit, x5 y222 w635 r10 vVerboseLog hwndhVLog ReadOnly
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 ;-=-=-=-=-=-=-=-=-=
 if FileExist(SettingsFile)
 {
-  IniRead, StoredConvMode, %SettingsFile%, Main, convmode
-    hConv:=hConv%StoredConvMode%
+  IniRead, ConvMode, %SettingsFile%, Main, convmode
+    hConv:=hConv%ConvMode%
     GuiControl, , %hConv%, 1
-  IniRead, StoredModel, %SettingsFile%, Main, model
-    if FileExist(A_ScriptDir . "\models\" . StoredModel)
-      GuiControl, Main:Text, OutModel, % StoredModel
-  IniRead, StoredDenoiseLevel, %SettingsFile%, Main, denoise
-    hdenoise:=hdenoise%StoredDenoiseLevel%
+  IniRead, OutModel, %SettingsFile%, Main, model
+    if FileExist(A_ScriptDir . "\models\" . OutModel)
+      GuiControl, Main:ChooseString, OutModel, % OutModel
+  IniRead, DenoiseLevel, %SettingsFile%, Main, denoise
+    hdenoise:=hdenoise%DenoiseLevel%
     GuiControl, , %hdenoise%, 1
   IniRead, StoredBlockSize, %SettingsFile%, Main, blocksize
     GuiControl, Main:Text, BLKSize, % StoredBlockSize
-  IniRead, StoredExtension, %SettingsFile%, Main, extension
-    GuiControl, Main:Text, OutExt, % StoredExtension
-  IniRead, StoredNGPU, %SettingsFile%, Main, nogpu
-    StoredNGPU:=(StoredNGPU)?1:0
-    GuiControl, , %hnogpu%, %StoredNGPU%
-  IniRead, StoredFOCL, %SettingsFile%, Main, forceocl
-    StoredFOCL:=(StoredFOCL)?1:0
-    GuiControl, , %hforceocl%, %StoredFOCL%
-  IniRead, StoredDPROC, %SettingsFile%, Main, defaultproc
-    If (HasVal(ProcessorsArr, StoredDPROC)<>0)
+  IniRead, OutExt, %SettingsFile%, Main, extension
+    GuiControl, Main:ChooseString, OutExt, % OutExt
+  IniRead, DisableGPU, %SettingsFile%, Main, nogpu
+    DisableGPU:=(DisableGPU)?1:0
+    GuiControl, , %hnogpu%, %DisableGPU%
+  IniRead, ForceOpenCL, %SettingsFile%, Main, forceocl
+    ForceOpenCL:=(ForceOpenCL)?1:0
+    GuiControl, , %hforceocl%, %ForceOpenCL%
+  IniRead, CurrentProc, %SettingsFile%, Main, defaultproc
+    If (HasVal(ProcessorsArr, CurrentProc)<>0)
     {
-      ArrayTmp:=StrSplit(StoredDPROC , "|")
+      ArrayTmp:=StrSplit(CurrentProc , "|")
       SelProcNum:=ArrayTmp[1]
-      CurrentProc:=StoredDPROC
       ManualProc:=1
       ProcsSetText(ArrayTmp[2], ArrayTmp[4])
     }
-  IniRead, StoredThreads, %SettingsFile%, Main, threads
-    If (StoredThreads <= ProcessorCount)
-      GuiControl, Main:Text, Threads, % StoredThreads
-  IniRead, StoredRatio, %SettingsFile%, Main, ratio
-    GuiControl, Main:Text, ScaleRatio, % StoredRatio
-  IniRead, StoredFtypes, %SettingsFile%, Main, filetypes
-    GuiControl, Main:Text, FTypeList, % StoredFtypes
+  IniRead, Threads, %SettingsFile%, Main, threads
+    If (Threads <= ProcessorCount)
+      GuiControl, Main:Text, Threads, % Threads
+  IniRead, ScaleRatio, %SettingsFile%, Main, ratio
+    GuiControl, Main:Text, ScaleRatio, % ScaleRatio
+  IniRead, FTypeList, %SettingsFile%, Main, filetypes
+    If (CheckFTypeList(FTypeList)<>0)
+      GuiControl, Main:Text, FTypeList, % FTypeList
+  IniRead, ShowLog, %SettingsFile%, Main, showlog
+    ShowLog:=(ShowLog)?1:0
+    GuiControl,Main:, ShowLog, %ShowLog%
+    If (ShowLog=0)
+    {
+      GuiControl, Main:Hide, VerboseLog
+      Gui,Main:Show, h%h_withoutlog%, %title1%
+    }
+    Else
+      Gui,Main:Show, h%h_withlog%, %title1%
 }
-;-=-=-=-=-=-=-=-=-=
-Gui,Main:Show, , %title1%
+Else
+  Gui,Main:Show, h%h_withlog%, %title1%
 ;-=-=-=-=-=-=-=-=-=
 
 RatioCalc =
@@ -387,6 +404,11 @@ IfExist, %InPath%
 }
 Return
 
+ScaleRatioCheck:
+GuiControlGet, InVar, , ScaleRatio
+EnsureNum(InVar, "ScaleRatio")
+Return
+
 ResCalc:
 Gui,Res:submit,nohide
 RegExMatch(ResForCalc, "^(\d+)x(\d+)$",ResMatch)
@@ -398,14 +420,58 @@ ResGuiclose:
 GoSub CancelRatio
 Return
 
+ToggleLog:
+GuiControlGet, LogEnabled, , ShowLog
+If (LogEnabled=False)
+{
+  GuiControl, Main:Hide, VerboseLog
+  Gui,Main:Show, h%h_withoutlog%
+}
+Else
+{
+  GuiControl, Main:Show, VerboseLog
+  Gui,Main:Show, h%h_withlog%
+  
+}
+Return
+
+
+RevertFTypeListColor:
+CtlColors.Change(hFTypeList, "", "")
+Return
+
+RevertInPathColor:
+CtlColors.Change(HInPath, "", "")
+Return
+
+RevertOutPathColor:
+CtlColors.Change(HOutPath, "", "")
+Return
+
 Process:
 GuiControlGet, Enabled, Main:Enabled, VTab
 If (Enabled=False)
   Return
 Gui,Main:submit,nohide
-If (InPath = "" or OutPath = "")
+If (FileExist(InPath)="")
 {
-  Msgbox, 262192, %L_Error%, %L_EmptyPath%
+  CtlColors.Change(HInPath, "FFC0C0", "")
+  GuiControl,Main:Focus, InPath
+  SoundPlay, *64
+  Return
+}
+If (OutPath = "")
+{
+  CtlColors.Change(HOutPath, "FFC0C0", "")
+  GuiControl,Main:Focus, OutPath
+  SoundPlay, *64
+  Return
+}
+If (CheckFTypeList(FTypeList)=0)
+{
+  CtlColors.Change(hFTypeList, "FFC0C0", "")
+  GuiControl,Main:Focus, FTypeList
+  SoundPlay, *64
   Return
 }
 ControlSetText, , %L_CancelTip%, ahk_id %hBtnGo%
@@ -447,36 +513,46 @@ If (BLKSize <> "")
 If BLKSize is integer
   Params := Params " --block_size " BLKSize
 ;-=-=-=-=-=-=-=-=-=
-GuiControl, Main:Text, VerboseLog, %Waifu2x_Path% %Params%`r`n
 OutPath:=RegExReplace(OutPath, " *$", "\")
 OutPath:=RegExReplace(OutPath, "\\+", "\")
 If( InStr( FileExist(OutPath), "D") = 0 )
    FileCreateDir, %OutPath%
-If (InputIsDir=0)
+If InStr( FileExist(InPath), "D" )
+{
+  InPath:=RegExReplace(InPath, " *$", "\")
+  InPath:=RegExReplace(InPath, "\\+", "\")
+  If (InPath=OutPath)
+    FilePrefix := "mai_"
+  LoopState:=True
+  IndexMin:=0
+  Loop, Files, %InPath%*, F
+  {
+    If (LoopState=False)
+      Break
+    SplitPath, A_LoopFileName, , , Ext, Name_no_ext
+    If Ext in %FTypeList%
+    {
+      If (IndexMin=0)
+      {
+        IndexMin:=A_Index
+        GuiControl, Main:Text, VerboseLog, Parameters: %Params%`r`n
+      }
+      InFile=%InPath%\%A_LoopFileName%
+      Outfile=%OutPath%%FilePrefix%%Name_no_ext%.%OutExt%
+      Convert_File(InFile, Outfile, Params)
+    }
+  }
+  LoopState:=False
+}
+Else
 {
   SplitPath, InPath, , InPathDir, Ext, Name_no_ext
   InPathDir=%InPathDir%\
   If (InPathDir=OutPath)
     FilePrefix := "mai_"
   Outfile=%OutPath%%FilePrefix%%Name_no_ext%.%OutExt%
+  GuiControl, Main:Text, VerboseLog, Parameters: %Params%`r`n
   Convert_File(InPath, Outfile, Params)
-}
-Else
-{
-  InPath:=RegExReplace(InPath, " *$", "\")
-  InPath:=RegExReplace(InPath, "\\+", "\")
-  If (InPath=OutPath)
-    FilePrefix := "mai_"
-  Loop, Files, %InPath%*, F
-  {
-    SplitPath, A_LoopFileName, , , Ext, Name_no_ext
-    If Ext in %FTypeList%
-    {
-      InFile=%InPath%\%A_LoopFileName%
-      Outfile=%OutPath%%FilePrefix%%Name_no_ext%.%OutExt%
-      Convert_File(InFile, Outfile, Params)
-    }
-  }
 }
 GuiControl, Main:Enable, VTab
 ConverterPID:=0
@@ -486,8 +562,28 @@ SB_SetText(L_Ready)
 Return
 
 MainGuiclose:
+MainGuiEscape:
 DllCall("DestroyCursor","Uint",BusyCur)
 DllCall("DestroyCursor","Uint",NormalCur)
+Gui,Main:submit
+IniWrite, %ConvMode%, %SettingsFile%, Main, convmode
+IniWrite, %OutModel%, %SettingsFile%, Main, model
+IniWrite, %DenoiseLevel%, %SettingsFile%, Main, denoise
+IniWrite, %OutExt%, %SettingsFile%, Main, extension
+IniWrite, %BLKSize%, %SettingsFile%, Main, blocksize
+IniWrite, %DisableGPU%, %SettingsFile%, Main, nogpu
+IniWrite, %ForceOpenCL%, %SettingsFile%, Main, forceocl
+IniWrite, %CurrentProc%, %SettingsFile%, Main, defaultproc
+IniWrite, %Threads%, %SettingsFile%, Main, threads
+IniWrite, %ScaleRatio%, %SettingsFile%, Main, ratio
+IniWrite, %ShowLog%, %SettingsFile%, Main, showlog
+If (CheckFTypeList(FTypeList)<>0)
+  IniWrite, %FTypeList%, %SettingsFile%, Main, filetypes
+Gdip_Shutdown(GDIPToken)
+Gui,Main:Destroy
+Gui,Res:Destroy
+Gui,Proc:Destroy
+CtlColors.Free()
 exitapp
 
 SelectInPath:
@@ -514,10 +610,6 @@ if A_GuiControl = InPathBtn
   if ! ErrorLevel
     Set_Edit_Content(InPathFromDiag)
 }
-;if A_GuiControl = ProcessV
-;{
-;  Goto Process
-;}
 Return
 
 On_WM_MOUSEMOVE(){
@@ -580,7 +672,6 @@ On_WM_DROPFILES(WParam, LParam, Msg, HWND) {
 Set_Edit_Content(DroppedPath) {
    Global HInPath
    Global HOutPath
-   Global InputIsDir
    Global OutExt
    Global FTypeInit
 ;-=-=-=-=-=-=-=-=-=
@@ -596,12 +687,10 @@ Set_Edit_Content(DroppedPath) {
    }
    If InStr( FileExist(DroppedPath), "D" )
    {
-     InputIsDir := true
      GuiControl, , % HOutPath, % DroppedPath "\waifu2x_output"
    }
    Else
    {
-     InputIsDir := false
      SplitPath, DroppedPath, , Dir, Ext
      If Ext Not In % FTypeInit
      {
@@ -628,11 +717,15 @@ Convert_File(InFile, Outfile, Params){
   Global Waifu2x_Path
   Global WPath
   Global ConverterPID
+  Global L_SBarPrefix
   Params = %Params% -i "%InFile%" -o "%Outfile%"
   SplitPath, InFile, InFileName
-  SB_SetText("Converting " . InFileName)
-  ;RunWait, %Waifu2x_Path% %Params% , %WPath%, %HideCMD%, ConverterPID
-  StdOutStream( Waifu2x_Path . " " . Params, "DumpCmdOut", WPath, ConverterPID)
+  SB_SetText(L_SBarPrefix . InFileName)
+  GuiControlGet, LogEnabled, , ShowLog
+  If (LogEnabled=True)
+    StdOutStream( Waifu2x_Path . " " . Params, "DumpCmdOut", WPath, ConverterPID)
+  Else
+    RunWait, %Waifu2x_Path% %Params%, %WPath%, Hide, ConverterPID
   Convert_Format(Outfile . ".png", OutFile)
   FileDelete, %Outfile%.png
 }
@@ -695,38 +788,47 @@ HasVal(haystack, needle) {
 	return 0
 }
 
-ExitFunc() 
+
+EnsureNum(Variable, ControlID)
 {
-  Global GDIPToken
-  Global SettingsFile
-  Global ConvMode, OutModel, DenoiseLevel, OutExt, BLKSize, DisableGPU
-  Global ForceOpenCL, CurrentProc, Threads, ScaleRatio, FTypeList
-  Gui,Main:submit
-  IniWrite, %ConvMode%, %SettingsFile%, Main, convmode
-  IniWrite, %OutModel%, %SettingsFile%, Main, model
-  IniWrite, %DenoiseLevel%, %SettingsFile%, Main, denoise
-  IniWrite, %OutExt%, %SettingsFile%, Main, extension
-  IniWrite, %BLKSize%, %SettingsFile%, Main, blocksize
-  IniWrite, %DisableGPU%, %SettingsFile%, Main, nogpu
-  IniWrite, %ForceOpenCL%, %SettingsFile%, Main, forceocl
-  IniWrite, %CurrentProc%, %SettingsFile%, Main, defaultproc
-  IniWrite, %Threads%, %SettingsFile%, Main, threads
-  IniWrite, %ScaleRatio%, %SettingsFile%, Main, ratio
-  IniWrite, %FTypeList%, %SettingsFile%, Main, filetypes
-  Gdip_Shutdown(GDIPToken)
+	containsSpaces:=RegExMatch(Variable,"[\s]")		; Check if contains spaces
+	noNumVar:=RegExReplace(Variable,"[^0-9.]+")		; Remove all non numerics or .
+	ControlGet,inPos, CurrentCol,, Edit1,A		; Get input position of the edit box.
+	StringSplit,splitNum,noNumVar,.				; Allow only one ".", the leftmost is preserved.
+	if (splitNum0>2)							; This can be higher than three if user pastes in something with more than one dot.
+	{
+		noNumVar:=splitNum1 . "."
+		Loop, % splitNum0-1
+		{
+			ind:=A_Index+1
+			noNumVar.=splitNum%ind%	 
+		}	
+	}
+	if (Variable==noNumVar && !containsSpaces) 		; If nothing changed and no spaces present, return
+		return
+	GuiControl,,%ControlID%,%noNumVar%		; Set text
+	PostMessage,0x00B1,inPos-2,inPos-2,Edit1,A 	; Move input caret to correct position, EM_SETSEL:=0x00B1
 }
 
-^K::
-WinGet, active_id, ID, A
-GuiControlGet, Enabled, Main:Enabled, VTab
-If (active_id=MainGuiHwnd and Enabled=False)
-  Process, Close, %ConverterPID%
-ConverterPID:=0
-Return
+CheckFTypeList(String)
+{
+  If (String="")
+    Return 0
+  Else
+  {
+    OutVar:=RegExMatch(String, "i)^\w+(,\w+)*$")
+    If (OutVar="")
+      Return 0
+    Else
+      Return OutVar
+  }
+}
 
-$Esc::
-WinGet, active_id, ID, A
+KillConverter:
 GuiControlGet, Enabled, Main:Enabled, VTab
-If (active_id=MainGuiHwnd and Enabled=True)
-  exitapp
+If (Enabled=False)
+{
+  LoopState:=False
+  Process, Close, %ConverterPID%
+}
 Return
