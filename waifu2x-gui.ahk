@@ -17,6 +17,7 @@ SettingsFile:=A_ScriptDir . "\settings.ini"
 SetWorkingDir %WPath%
 
 FTypeInit:="png,jpg,jpeg,jfif,tif,tiff,bmp,tga"
+ErrorColor:="FFC0C0"
 GDIPToken := Gdip_Startup()
 
 ConverterPID:=0
@@ -94,7 +95,7 @@ L_SelProc:="Select processor"
 L_SelProcInfo:="Click to manually specify processor"
 L_NoItemSelected:="No item selected"
 L_AutoProc:="Select processor automatically"
-L_CancelTip:="Press Ctrl+K to cancel"
+L_Stop:="Stop"
 L_SBarPrefix:="Converting "
 L_Font:="Tahoma"
 L_ShowLog:="Show command line output"
@@ -140,20 +141,23 @@ Gui,Main: Font, s8, %L_Font%
 Gui,Main:+HwndMainGuiHwnd
 ;-=-=-=-=-=-=-=-=-=
 WM_DROPFILES := 0x0233
-WS_EX_ACCEPTFILES := 0x10
 WM_MOUSEMOVE := 0x200
+WM_LBUTTONUP = 0x202
+WS_EX_ACCEPTFILES := 0x10
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, Tab2, x0 y0 w0 h0 -Wrap vVTab, OneTab
 Gui,Main:Tab, OneTab
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, Text, x5 y12 w60 Center, %L_InPath%
 Gui,Main:Add, Edit, HwndHInPath r1 vInPath x70 y10 h30 w530 gRevertInPathColor +E%WS_EX_ACCEPTFILES%, %fName%
+CtlColors.Attach(HInPath, "", "")
 Gui,Main:add,Button, vInPathBtn gSelectInPath y9 w30 h23 x610 , ...
 InPath_TT = %L_InPathTip%
 InPathBtn_TT = %L_InPathBtnTip%
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, Text, x5 y47 w60 Center, %L_OutPath%
 Gui,Main:Add, Edit, HwndHOutPath r1 vOutPath x70 y45 h30 w530 gRevertOutPathColor +E%WS_EX_ACCEPTFILES%, %DirInit%
+CtlColors.Attach(HOutPath, "", "")
 Gui,Main:add,Button, gSelectOutPath y44 w30 h23 x610 , ...
 OutPath_TT = %L_OutPathTip%
 ;-=-=-=-=-=-=-=-=-=
@@ -161,6 +165,7 @@ BusyCur:=DllCall("LoadCursor","UInt",NULL,"Int",32514,"UInt") ;IDC_WAIT
 NormalCur:=DllCall("LoadCursor","UInt",NULL,"Int",32512,"UInt") ;IDC_ARROW
 OnMessage(WM_DROPFILES, "On_WM_DROPFILES")
 OnMessage(WM_MOUSEMOVE, "On_WM_MOUSEMOVE")
+OnMessage(WM_LBUTTONUP, "On_WM_LBUTTONUP")
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x5 y80 w150 h75, %L_ConvMode%
 Gui,Main:Add, Radio, hwndhConv1 x10 y96 w130 h14 vConvMode, %L_Denoise%
@@ -200,11 +205,12 @@ Gui,Main:Add, Button, x314 y136 w147 h35 vSelProcInfoV hwndhBtnProcWin gProcInit
 SelProcInfoV_TT:=L_SelProcInfo
 EnvGet, ProcessorCount, NUMBER_OF_PROCESSORS
 Gui,Main:Add, Text, x315 y177 w145 h20, %L_Threads%
-Gui,Main:Add, Edit, x390 y175 w70 h18 Number vThreads, % ProcessorCount
+Gui,Main:Add, Edit, x390 y175 w70 h18 Number vThreads gThreadsCheck hwndHThreads, % ProcessorCount
+CtlColors.Attach(HThreads, "", "")
 Gui,Main:Add, UpDown, % "range1-" ProcessorCount, % ProcessorCount
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x470 y80 w170 h37, %L_ScaleRatio%
-Gui,Main:Add, Edit, x475 y95 w130 h18 vScaleRatio gScaleRatioCheck, 2
+Gui,Main:Add, Edit, x475 y95 w130 h18 vScaleRatio gScaleRatioCheck hwndHScaleRatio, 2
 Gui,Main:Add, UpDown, range1-50, 2
 Gui,Main:Add, Button, x610 y94 w25 h20 vScaleGenBtn gScaleGen, ...
 ScaleGenBtn_TT = %L_ScaleGenTip%
@@ -213,11 +219,11 @@ Gui,Main:Add, GroupBox, x470 y117 w170 h40, %L_ProcTheseTypes%
 Gui,Main:Add, Edit, x475 y133 w160 h20 vFTypeList gRevertFTypeListColor hwndhFTypeList, % FTypeInit
 CtlColors.Attach(hFTypeList, "", "")
 ;-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, Button, x469 y160 w172 h39 hwndhBtnGo gProcess vProcessV, %L_Go%
-Hotkey, IfWinActive, ahk_id %MainGuiHwnd%
-Hotkey, ^k, KillConverter
+;Hotkey, IfWinActive, ahk_id %MainGuiHwnd%
+;Hotkey, ^k, KillConverter
 Gui,Main:Add, Checkbox, x5 y202 vShowLog gToggleLog, %L_ShowLog%
 Gui,Main:Tab
+Gui,Main:Add, Button, x469 y160 w172 h39 hwndhBtnGo gProcess vProcessV, %L_Go%
 Gui,Main:Add, StatusBar,, %L_Ready%
 Gui,Main:Font, s7, Lucida Console
 Gui,Main:Add, Edit, x5 y222 w635 r10 vVerboseLog hwndhVLog ReadOnly
@@ -253,9 +259,10 @@ if FileExist(SettingsFile)
       ProcsSetText(ArrayTmp[2], ArrayTmp[4])
     }
   IniRead, Threads, %SettingsFile%, Main, threads
-    If (Threads <= ProcessorCount)
+    If (Threads <= ProcessorCount and Threads > 0)
       GuiControl, Main:Text, Threads, % Threads
   IniRead, ScaleRatio, %SettingsFile%, Main, ratio
+    ScaleRatioFormat(ScaleRatio)
     GuiControl, Main:Text, ScaleRatio, % ScaleRatio
   IniRead, FTypeList, %SettingsFile%, Main, filetypes
     If (CheckFTypeList(FTypeList)<>0)
@@ -278,7 +285,7 @@ Else
 RatioCalc =
 ResAvailable = 800x600|1024x768|1280x720|1280x800|1360x768|1366x768|1440x900|1680x1050|1920x1080|1920x1200|1920x1440|2048x1536|2560x1440|3200x1800|4096x2160
 Gui,Res: Font, s8, %L_Font%
-Gui,Res:+ToolWindow
+;Gui,Res:+ToolWindow
 Gui,Res:+OwnerMain
 ;-=-=-=-=-=-=-=-=-=
 Gui,Res:Add, Text, x5 y12 w60 h30 Center, %L_Resolution%
@@ -292,7 +299,7 @@ Gui,Res:Add, Button, x9 y80 w85 h30 gSetRatio, %L_OK%
 Gui,Res:Add, Button, gCancelRatio y80 w85 h30 x105, %L_Cancel%
 ;-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Proc: Font, s8, %L_Font%
-Gui,Proc:+ToolWindow
+;Gui,Proc:+ToolWindow
 Gui,Proc:+OwnerMain
 Gui,Proc: Add, CheckBox, x5 y5 h14 vManualProcChecked hwndhManualProc -Checked, %L_ManualProc%
 Gui,Proc: Add, ListView, x5 y25 w400 h200 vProcListLV gLVSelect AltSubmit NoSortHdr -Multi -LV0x10, No.|%L_Type%|%L_Cores%|%L_Name%
@@ -406,7 +413,13 @@ Return
 
 ScaleRatioCheck:
 GuiControlGet, InVar, , ScaleRatio
-EnsureNum(InVar, "ScaleRatio")
+EnsureNum(InVar, HScaleRatio)
+Return
+
+ThreadsCheck:
+CtlColors.Change(HThreads, "", "")
+GuiControlGet, InVar, , Threads
+EnsureIntRange(InVar, ProcessorCount, HThreads, ProcessorCount)
 Return
 
 ResCalc:
@@ -435,7 +448,6 @@ Else
 }
 Return
 
-
 RevertFTypeListColor:
 CtlColors.Change(hFTypeList, "", "")
 Return
@@ -451,30 +463,41 @@ Return
 Process:
 GuiControlGet, Enabled, Main:Enabled, VTab
 If (Enabled=False)
+{
+  On_WM_LBUTTONUP()
   Return
+}
 Gui,Main:submit,nohide
 If (FileExist(InPath)="")
 {
-  CtlColors.Change(HInPath, "FFC0C0", "")
+  CtlColors.Change(HInPath, ErrorColor, "")
   GuiControl,Main:Focus, InPath
+  SoundPlay, *64
+  Return
+}
+If (Threads = "")
+{
+  CtlColors.Change(HThreads, ErrorColor, "")
+  GuiControl,Main:Focus, Threads
   SoundPlay, *64
   Return
 }
 If (OutPath = "")
 {
-  CtlColors.Change(HOutPath, "FFC0C0", "")
+  CtlColors.Change(HOutPath, ErrorColor, "")
   GuiControl,Main:Focus, OutPath
   SoundPlay, *64
   Return
 }
 If (CheckFTypeList(FTypeList)=0)
 {
-  CtlColors.Change(hFTypeList, "FFC0C0", "")
+  CtlColors.Change(hFTypeList, ErrorColor, "")
   GuiControl,Main:Focus, FTypeList
   SoundPlay, *64
   Return
 }
-ControlSetText, , %L_CancelTip%, ahk_id %hBtnGo%
+ScaleRatioFormat(ScaleRatio)
+ControlSetText, , %L_Stop%, ahk_id %hBtnGo%
 ;GuiControl, Main:Text, VerboseLog
 ;-=-=-=-=-=-=-=-=-=
 GuiControl, Main:Disable, VTab
@@ -575,6 +598,7 @@ IniWrite, %DisableGPU%, %SettingsFile%, Main, nogpu
 IniWrite, %ForceOpenCL%, %SettingsFile%, Main, forceocl
 IniWrite, %CurrentProc%, %SettingsFile%, Main, defaultproc
 IniWrite, %Threads%, %SettingsFile%, Main, threads
+ScaleRatioFormat(ScaleRatio)
 IniWrite, %ScaleRatio%, %SettingsFile%, Main, ratio
 IniWrite, %ShowLog%, %SettingsFile%, Main, showlog
 If (CheckFTypeList(FTypeList)<>0)
@@ -611,6 +635,17 @@ if A_GuiControl = InPathBtn
     Set_Edit_Content(InPathFromDiag)
 }
 Return
+
+On_WM_LBUTTONUP(){
+  Global LoopState
+  Global ConverterPID
+  GuiControlGet, Enabled, Main:Enabled, VTab
+  If (Enabled=False and A_GuiControl="ProcessV")
+  {
+    LoopState:=False
+    Process, Close, %ConverterPID%
+  }
+}
 
 On_WM_MOUSEMOVE(){
   Global BusyCur
@@ -788,12 +823,20 @@ HasVal(haystack, needle) {
 	return 0
 }
 
+EnsureIntRange(Variable, Max, ControlID, DefaultVal)
+{
+  ControlGet, inPos, CurrentCol,,, ahk_id %ControlID%
+	if ((Variable<=Max and Variable>0) or Variable="" ) 
+		return
+	GuiControl,,%ControlID%,%DefaultVal%
+	PostMessage,0x00B1,inPos-1,inPos-1,, ahk_id %ControlID%
+}
 
 EnsureNum(Variable, ControlID)
 {
 	containsSpaces:=RegExMatch(Variable,"[\s]")		; Check if contains spaces
 	noNumVar:=RegExReplace(Variable,"[^0-9.]+")		; Remove all non numerics or .
-	ControlGet,inPos, CurrentCol,, Edit1,A		; Get input position of the edit box.
+	ControlGet,inPos, CurrentCol,,, ahk_id %ControlID%		; Get input position of the edit box.
 	StringSplit,splitNum,noNumVar,.				; Allow only one ".", the leftmost is preserved.
 	if (splitNum0>2)							; This can be higher than three if user pastes in something with more than one dot.
 	{
@@ -807,7 +850,7 @@ EnsureNum(Variable, ControlID)
 	if (Variable==noNumVar && !containsSpaces) 		; If nothing changed and no spaces present, return
 		return
 	GuiControl,,%ControlID%,%noNumVar%		; Set text
-	PostMessage,0x00B1,inPos-2,inPos-2,Edit1,A 	; Move input caret to correct position, EM_SETSEL:=0x00B1
+	PostMessage,0x00B1,inPos-2,inPos-2,,ahk_id %ControlID% 	; Move input caret to correct position, EM_SETSEL:=0x00B1
 }
 
 CheckFTypeList(String)
@@ -824,11 +867,15 @@ CheckFTypeList(String)
   }
 }
 
-KillConverter:
-GuiControlGet, Enabled, Main:Enabled, VTab
-If (Enabled=False)
+ScaleRatioFormat(InVar)
 {
-  LoopState:=False
-  Process, Close, %ConverterPID%
+  Global HScaleRatio
+  Global ScaleRatio
+  ;GuiControlGet, InVar,, %HScaleRatio%
+  InVar:=InVar+0
+  If (InVar<1)
+    InVar:="2"
+  GuiControl, Main:Text, ScaleRatio, %InVar%
+  ScaleRatio:=InVar
 }
-Return
+
