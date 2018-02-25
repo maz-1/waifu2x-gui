@@ -25,6 +25,7 @@ SelProcNum:=0
 ManualProc:=0
 CurrentProc:=""
 LoopState:=False
+Alert:=False
 
 fName = %1%
 DirInit =
@@ -142,7 +143,7 @@ Gui,Main:+HwndMainGuiHwnd
 ;-=-=-=-=-=-=-=-=-=
 WM_DROPFILES := 0x0233
 WM_MOUSEMOVE := 0x200
-WM_LBUTTONUP = 0x202
+WM_LBUTTONUP := 0x202
 WS_EX_ACCEPTFILES := 0x10
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, Tab2, x0 y0 w0 h0 -Wrap vVTab, OneTab
@@ -161,8 +162,8 @@ CtlColors.Attach(HOutPath, "", "")
 Gui,Main:add,Button, gSelectOutPath y44 w30 h23 x610 , ...
 OutPath_TT = %L_OutPathTip%
 ;-=-=-=-=-=-=-=-=-=
-BusyCur:=DllCall("LoadCursor","UInt",NULL,"Int",32514,"UInt") ;IDC_WAIT
-NormalCur:=DllCall("LoadCursor","UInt",NULL,"Int",32512,"UInt") ;IDC_ARROW
+;BusyCur:=DllCall("LoadCursor","UInt",NULL,"Int",32514,"UInt") ;IDC_WAIT
+;NormalCur:=DllCall("LoadCursor","UInt",NULL,"Int",32512,"UInt") ;IDC_ARROW
 OnMessage(WM_DROPFILES, "On_WM_DROPFILES")
 OnMessage(WM_MOUSEMOVE, "On_WM_MOUSEMOVE")
 OnMessage(WM_LBUTTONUP, "On_WM_LBUTTONUP")
@@ -216,7 +217,7 @@ Gui,Main:Add, Button, x610 y94 w25 h20 vScaleGenBtn gScaleGen, ...
 ScaleGenBtn_TT = %L_ScaleGenTip%
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x470 y117 w170 h40, %L_ProcTheseTypes%
-Gui,Main:Add, Edit, x475 y133 w160 h20 vFTypeList gRevertFTypeListColor hwndhFTypeList, % FTypeInit
+Gui,Main:Add, Edit, x475 y133 w160 h20 vFTypeList gFTypeListCheck hwndhFTypeList, % FTypeInit
 CtlColors.Attach(hFTypeList, "", "")
 ;-=-=-=-=-=-=-=-=-=
 ;Hotkey, IfWinActive, ahk_id %MainGuiHwnd%
@@ -231,24 +232,22 @@ Gui,Main:Add, Edit, x5 y222 w635 r10 vVerboseLog hwndhVLog ReadOnly
 ;-=-=-=-=-=-=-=-=-=
 if FileExist(SettingsFile)
 {
-  IniRead, ConvMode, %SettingsFile%, Main, convmode
+  IniRead, ConvMode, %SettingsFile%, Main, convmode, 3
     hConv:=hConv%ConvMode%
     GuiControl, , %hConv%, 1
   IniRead, OutModel, %SettingsFile%, Main, model
     if FileExist(A_ScriptDir . "\models\" . OutModel)
       GuiControl, Main:ChooseString, OutModel, % OutModel
-  IniRead, DenoiseLevel, %SettingsFile%, Main, denoise
+  IniRead, DenoiseLevel, %SettingsFile%, Main, denoise, 1
     hdenoise:=hdenoise%DenoiseLevel%
     GuiControl, , %hdenoise%, 1
-  IniRead, StoredBlockSize, %SettingsFile%, Main, blocksize
-    GuiControl, Main:Text, BLKSize, % StoredBlockSize
-  IniRead, OutExt, %SettingsFile%, Main, extension
+  IniRead, BLKSize, %SettingsFile%, Main, blocksize, %A_Space%
+    GuiControl, Main:Text, BLKSize, % BLKSize
+  IniRead, OutExt, %SettingsFile%, Main, extension, png
     GuiControl, Main:ChooseString, OutExt, % OutExt
-  IniRead, DisableGPU, %SettingsFile%, Main, nogpu
-    DisableGPU:=(DisableGPU)?1:0
+  IniRead, DisableGPU, %SettingsFile%, Main, nogpu, 0
     GuiControl, , %hnogpu%, %DisableGPU%
-  IniRead, ForceOpenCL, %SettingsFile%, Main, forceocl
-    ForceOpenCL:=(ForceOpenCL)?1:0
+  IniRead, ForceOpenCL, %SettingsFile%, Main, forceocl, 0
     GuiControl, , %hforceocl%, %ForceOpenCL%
   IniRead, CurrentProc, %SettingsFile%, Main, defaultproc
     If (HasVal(ProcessorsArr, CurrentProc)<>0)
@@ -258,17 +257,16 @@ if FileExist(SettingsFile)
       ManualProc:=1
       ProcsSetText(ArrayTmp[2], ArrayTmp[4])
     }
-  IniRead, Threads, %SettingsFile%, Main, threads
+  IniRead, Threads, %SettingsFile%, Main, threads, %ProcessorCount%
     If (Threads <= ProcessorCount and Threads > 0)
       GuiControl, Main:Text, Threads, % Threads
   IniRead, ScaleRatio, %SettingsFile%, Main, ratio
     ScaleRatioFormat(ScaleRatio)
     GuiControl, Main:Text, ScaleRatio, % ScaleRatio
-  IniRead, FTypeList, %SettingsFile%, Main, filetypes
+  IniRead, FTypeList, %SettingsFile%, Main, filetypes, %A_Space%
     If (CheckFTypeList(FTypeList)<>0)
       GuiControl, Main:Text, FTypeList, % FTypeList
-  IniRead, ShowLog, %SettingsFile%, Main, showlog
-    ShowLog:=(ShowLog)?1:0
+  IniRead, ShowLog, %SettingsFile%, Main, showlog, 1
     GuiControl,Main:, ShowLog, %ShowLog%
     If (ShowLog=0)
     {
@@ -417,9 +415,39 @@ EnsureNum(InVar, HScaleRatio)
 Return
 
 ThreadsCheck:
-CtlColors.Change(HThreads, "", "")
+If (Alert:=True)
+{
+  CtlColors.Change(HThreads, "", "")
+  Alert:=False
+}
 GuiControlGet, InVar, , Threads
 EnsureIntRange(InVar, ProcessorCount, HThreads, ProcessorCount)
+Return
+
+FTypeListCheck:
+If (Alert:=True)
+{
+  Alert:=False
+  CtlColors.Change(hFTypeList, "", "")
+}
+GuiControlGet, InVar, , FTypeList
+EnsureFTypeList(InVar, hFTypeList)
+Return
+
+RevertInPathColor:
+If (Alert:=True)
+{
+  Alert:=False
+  CtlColors.Change(HInPath, "", "")
+}
+Return
+
+RevertOutPathColor:
+If (Alert:=True)
+{
+  Alert:=False
+  CtlColors.Change(HOutPath, "", "")
+}
 Return
 
 ResCalc:
@@ -448,18 +476,6 @@ Else
 }
 Return
 
-RevertFTypeListColor:
-CtlColors.Change(hFTypeList, "", "")
-Return
-
-RevertInPathColor:
-CtlColors.Change(HInPath, "", "")
-Return
-
-RevertOutPathColor:
-CtlColors.Change(HOutPath, "", "")
-Return
-
 Process:
 GuiControlGet, Enabled, Main:Enabled, VTab
 If (Enabled=False)
@@ -471,6 +487,7 @@ Gui,Main:submit,nohide
 If (FileExist(InPath)="")
 {
   CtlColors.Change(HInPath, ErrorColor, "")
+  Alert:=True
   GuiControl,Main:Focus, InPath
   SoundPlay, *64
   Return
@@ -478,6 +495,7 @@ If (FileExist(InPath)="")
 If (Threads = "")
 {
   CtlColors.Change(HThreads, ErrorColor, "")
+  Alert:=True
   GuiControl,Main:Focus, Threads
   SoundPlay, *64
   Return
@@ -485,6 +503,7 @@ If (Threads = "")
 If (OutPath = "")
 {
   CtlColors.Change(HOutPath, ErrorColor, "")
+  Alert:=True
   GuiControl,Main:Focus, OutPath
   SoundPlay, *64
   Return
@@ -492,6 +511,7 @@ If (OutPath = "")
 If (CheckFTypeList(FTypeList)=0)
 {
   CtlColors.Change(hFTypeList, ErrorColor, "")
+  Alert:=True
   GuiControl,Main:Focus, FTypeList
   SoundPlay, *64
   Return
@@ -580,14 +600,14 @@ Else
 GuiControl, Main:Enable, VTab
 ConverterPID:=0
 ControlSetText, , %L_Go%, ahk_id %hBtnGo%
-DllCall("SetCursor","UInt",NormalCur)
+;DllCall("SetCursor","UInt",NormalCur)
 SB_SetText(L_Ready)
 Return
 
 MainGuiclose:
 MainGuiEscape:
-DllCall("DestroyCursor","Uint",BusyCur)
-DllCall("DestroyCursor","Uint",NormalCur)
+;DllCall("DestroyCursor","Uint",BusyCur)
+;DllCall("DestroyCursor","Uint",NormalCur)
 Gui,Main:submit
 IniWrite, %ConvMode%, %SettingsFile%, Main, convmode
 IniWrite, %OutModel%, %SettingsFile%, Main, model
@@ -603,6 +623,8 @@ IniWrite, %ScaleRatio%, %SettingsFile%, Main, ratio
 IniWrite, %ShowLog%, %SettingsFile%, Main, showlog
 If (CheckFTypeList(FTypeList)<>0)
   IniWrite, %FTypeList%, %SettingsFile%, Main, filetypes
+Else If (FTypeList="")
+  IniDelete, %SettingsFile%, Main , filetypes
 Gdip_Shutdown(GDIPToken)
 Gui,Main:Destroy
 Gui,Res:Destroy
@@ -648,13 +670,13 @@ On_WM_LBUTTONUP(){
 }
 
 On_WM_MOUSEMOVE(){
-  Global BusyCur
-  Global ConverterPID
-  If (ConverterPID<>0)
-  {
-	  DllCall("SetCursor","UInt",BusyCur)
-	  Return
-	}
+  ;Global BusyCur
+  ;Global ConverterPID
+  ;If (ConverterPID<>0)
+  ;{
+	;  DllCall("SetCursor","UInt",BusyCur)
+	;  Return
+	;}
 	
 	static CurrControl, PrevControl, _TT
 	CurrControl := A_GuiControl
@@ -769,8 +791,9 @@ DumpCmdOut(TxtNew, TxtIndex)
 {
   Global MainGuiHwnd
   Global hVLog
-  GuiControlGet, TxtOrig, , VerboseLog
-  GuiControl, Main:Text, VerboseLog, %TxtOrig%%TxtNew%
+  ;GuiControlGet, TxtOrig, , VerboseLog
+  ;GuiControl, Main:Text, VerboseLog, %TxtOrig%%TxtNew%
+  AppendText(hVLog, &TxtNew)
   WinGet, active_id, ID, A
   If (active_id=MainGuiHwnd)
     ControlSend, , ^{End}, ahk_id %hVLog%
@@ -821,6 +844,17 @@ HasVal(haystack, needle) {
 		if (value = needle)
 			return index
 	return 0
+}
+
+EnsureFTypeList(Variable, ControlID)
+{
+  containsSpaces:=RegExMatch(Variable,"[\s]")
+  RegExMatch(Variable, "\w+(,\w+)*,?", CorrectVar)
+  ControlGet,inPos, CurrentCol,,, ahk_id %ControlID%
+  if (Variable==CorrectVar && !containsSpaces)
+    Return
+  GuiControl,,%ControlID%,%CorrectVar%
+  PostMessage,0x00B1,inPos-2,inPos-2,, ahk_id %ControlID%
 }
 
 EnsureIntRange(Variable, Max, ControlID, DefaultVal)
@@ -879,3 +913,8 @@ ScaleRatioFormat(InVar)
   ScaleRatio:=InVar
 }
 
+AppendText(hEdit, ptrText) {
+    SendMessage, 0x000E, 0, 0,, ahk_id %hEdit% ;WM_GETTEXTLENGTH
+    SendMessage, 0x00B1, ErrorLevel, ErrorLevel,, ahk_id %hEdit% ;EM_SETSEL
+    SendMessage, 0x00C2, False, ptrText,, ahk_id %hEdit% ;EM_REPLACESEL
+}
