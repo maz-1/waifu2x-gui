@@ -3,6 +3,7 @@ waifu2x-converter-cpp GUI written in Autohotkey
 ![ScreenShot](https://raw.githubusercontent.com/maz-1/waifu2x-gui/master/screenshot.jpg)
 
 # Features
+* Multilanguage
 * Drag & drop folders/files
 * Manually specify processor to use
 * Calculate an appropriate enlarge ratio for windows wallpaper
