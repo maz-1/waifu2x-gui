@@ -3,7 +3,6 @@
 
 #include stdout2var.ahk
 #Include Gdip.ahk
-
 #Include Class_CtlColors.ahk
 
 title1=Waifu2x-CPP GUI By Maz-1 (maz_1@foxmail.com)
@@ -185,12 +184,11 @@ Loop, Files, models\* ,D
     If (A_LoopFileName = "models")
       Model_Default:=A_Index
 }
-Gui,Main:Add, DropDownList, x10 y170 w140 vOutModel Choose%Model_Default%, %Model_List%
+Gui,Main:Add, DropDownList, x10 y170 w140 vOutModel Choose%Model_Default%, %Model_List% ;gSetDenoiseLevelRange
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x160 y80 w145 h35, %L_Denoise_Level%
-Gui,Main:Add, Radio, hwndhdenoise1 x165 y97 w45 h14 vDenoiseLevel Checked, 1
-Gui,Main:Add, Radio, hwndhdenoise2 x210 y97 w45 h14, 2
-Gui,Main:Add, Radio, hwndhdenoise3 x255 y97 w45 h14, 3
+Gui,Main:Add, Slider, hwndhdenoise x165 y95 w120 h18 vDenoiseLevel AltSubmit gSetSliderLabel Range1-3, 1
+Gui,Main:Add, Text, x285 y95 w10 h18 vCurDenoiseLevel Center, 1
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x160 y155 w145 h44, %L_OutExt%
 Gui,Main:Add, DropDownList, x165 y170 w135 vOutExt Choose1, png|jpg|bmp|tiff
@@ -238,9 +236,10 @@ if FileExist(SettingsFile)
   IniRead, OutModel, %SettingsFile%, Main, model
     if FileExist(A_ScriptDir . "\models\" . OutModel)
       GuiControl, Main:ChooseString, OutModel, % OutModel
+      ;SetDenoiseLevelRange(OutModel)
   IniRead, DenoiseLevel, %SettingsFile%, Main, denoise, 1
-    hdenoise:=hdenoise%DenoiseLevel%
-    GuiControl, , %hdenoise%, 1
+    GuiControl, , %hdenoise%, %DenoiseLevel%
+    GuiControl, Main:Text, CurDenoiseLevel, %DenoiseLevel%
   IniRead, BLKSize, %SettingsFile%, Main, blocksize, %A_Space%
     GuiControl, Main:Text, BLKSize, % BLKSize
   IniRead, OutExt, %SettingsFile%, Main, extension, png
@@ -409,6 +408,11 @@ IfExist, %InPath%
 }
 Return
 
+;SetDenoiseLevelRange:
+;GuiControlGet, OutModel, , OutModel
+;SetDenoiseLevelRange(OutModel)
+;Return
+
 ScaleRatioCheck:
 GuiControlGet, InVar, , ScaleRatio
 EnsureNum(InVar, HScaleRatio)
@@ -448,6 +452,12 @@ If (Alert:=True)
   Alert:=False
   CtlColors.Change(HOutPath, "", "")
 }
+Return
+
+SetSliderLabel:
+GuiControlGet, CurDenoiseLevel, , DenoiseLevel
+If (CurDenoiseLevel<>"")
+   GuiControl, Main:Text, CurDenoiseLevel, %CurDenoiseLevel%
 Return
 
 ResCalc:
@@ -899,6 +909,26 @@ CheckFTypeList(String)
     Else
       Return OutVar
   }
+}
+
+SetDenoiseLevelRange(OutModel){
+    NoiseLevelMin:=""
+    NoiseLevelMax:=""
+    Loop, Files, %A_ScriptDir%\models\%OutModel%\noise?_model.*
+    {
+      RegExMatch(A_LoopFileName, "\d(?=_model\.)", NoiseLevelNum)
+      If (NoiseLevelNum<>"")
+      {
+        If (NoiseLevelMin="" or NoiseLevelNum<NoiseLevelMin)
+          NoiseLevelMin:=NoiseLevelNum
+        If (NoiseLevelMax="" or NoiseLevelNum>NoiseLevelMax)
+          NoiseLevelMax:=NoiseLevelNum
+      }
+    }
+    GuiControl, Main:+Range%NoiseLevelMin%-%NoiseLevelMax%, DenoiseLevel
+    GuiControlGet, CurDenoiseLevel, , DenoiseLevel
+    If (CurDenoiseLevel<>"")
+      GuiControl, Main:Text, CurDenoiseLevel, %CurDenoiseLevel%
 }
 
 ScaleRatioFormat(InVar)
