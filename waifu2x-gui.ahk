@@ -59,6 +59,7 @@ L_Scale := "Scale"
 L_Denoise_Scale := "Denoise and scale"
 L_Denoise_Level := "JPEG denoise level"
 L_OutExt := "Output extension"
+L_Quality := "Quality"
 L_Model := "Model"
 L_BlkSize := "Block size"
 L_ProcOpt := "Processor options"
@@ -191,8 +192,10 @@ Gui,Main:Add, Slider, hwndhdenoise x165 y95 w120 h18 vDenoiseLevel AltSubmit gSe
 Gui,Main:Add, Text, x285 y95 w10 h18 vCurDenoiseLevel Center, 1
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x160 y155 w145 h44, %L_OutExt%
-Gui,Main:Add, DropDownList, x165 y170 w135 vOutExt Choose1, png|jpg|bmp|tiff
+Gui,Main:Add, DropDownList, x165 y170 w45 vOutExt gExtChanged hwndhExt Choose1, png|jpg|bmp|tiff
 ;|webp
+Gui,Main:Add, Text, x210 y172 w45 h20 Right, %L_Quality%
+Gui,Main:Add, Combobox, vOutQuality x260 y170 w40 Choose2, 100|75
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, GroupBox, x160 y115 w145 h40, %L_BlkSize%
 Gui,Main:Add, Edit, x165 y130 w135 h18 Number vBLKSize
@@ -244,6 +247,10 @@ if FileExist(SettingsFile)
     GuiControl, Main:Text, BLKSize, % BLKSize
   IniRead, OutExt, %SettingsFile%, Main, extension, png
     GuiControl, Main:ChooseString, OutExt, % OutExt
+    If (OutExt <> "jpg")
+      GuiControl, Main:Disable, OutQuality
+  IniRead, OutQuality, %SettingsFile%, Main, quality, 75
+    GuiControl, Main:Text, OutQuality, % OutQuality
   IniRead, DisableGPU, %SettingsFile%, Main, nogpu, 0
     GuiControl, , %hnogpu%, %DisableGPU%
   IniRead, ForceOpenCL, %SettingsFile%, Main, forceocl, 0
@@ -277,6 +284,8 @@ if FileExist(SettingsFile)
 }
 Else
   Gui,Main:Show, h%h_withlog%, %title1%
+hQualityEdit := ComboBoxGetHEDIT(hQuality)
+WinSet, Style, +0x2000, ahk_id %hQualityEdit%
 ;-=-=-=-=-=-=-=-=-=
 
 RatioCalc =
@@ -412,6 +421,14 @@ Return
 ;GuiControlGet, OutModel, , OutModel
 ;SetDenoiseLevelRange(OutModel)
 ;Return
+
+ExtChanged:
+ControlGetText, CurrentExt,, ahk_id %hExt%
+If (CurrentExt = "jpg")
+  GuiControl, Main:Enable, OutQuality
+Else
+  GuiControl, Main:Disable, OutQuality
+Return
 
 ScaleRatioCheck:
 GuiControlGet, InVar, , ScaleRatio
@@ -623,6 +640,7 @@ IniWrite, %ConvMode%, %SettingsFile%, Main, convmode
 IniWrite, %OutModel%, %SettingsFile%, Main, model
 IniWrite, %DenoiseLevel%, %SettingsFile%, Main, denoise
 IniWrite, %OutExt%, %SettingsFile%, Main, extension
+IniWrite, %OutQuality%, %SettingsFile%, Main, quality
 IniWrite, %BLKSize%, %SettingsFile%, Main, blocksize
 IniWrite, %DisableGPU%, %SettingsFile%, Main, nogpu
 IniWrite, %ForceOpenCL%, %SettingsFile%, Main, forceocl
@@ -785,6 +803,7 @@ Convert_File(InFile, Outfile, Params){
   Global WPath
   Global ConverterPID
   Global L_SBarPrefix
+  Global OutQuality
   Params = %Params% -i "%InFile%" -o "%Outfile%"
   SplitPath, InFile, InFileName
   SB_SetText(L_SBarPrefix . InFileName)
@@ -793,7 +812,7 @@ Convert_File(InFile, Outfile, Params){
     StdOutStream( Waifu2x_Path . " " . Params, "DumpCmdOut", WPath, ConverterPID)
   Else
     RunWait, %Waifu2x_Path% %Params%, %WPath%, Hide, ConverterPID
-  Convert_Format(Outfile . ".png", OutFile)
+  Convert_Format(Outfile . ".png", OutFile, OutQuality)
   FileDelete, %Outfile%.png
 }
 
@@ -809,7 +828,7 @@ DumpCmdOut(TxtNew, TxtIndex)
     ControlSend, , ^{End}, ahk_id %hVLog%
 }
 
-Convert_Format(InFile, OutFile)
+Convert_Format(InFile, OutFile, Quality)
 {
   Result:=False
   If (SubStr(InFile, -2)<>SubStr(OutFile, -2))
@@ -821,7 +840,7 @@ Convert_Format(InFile, OutFile)
       pBitmapNew := Gdip_CreateBitmap(Width, Height)
       GNew := Gdip_GraphicsFromImage(pBitmapNew),	Gdip_SetInterpolationMode(GNew, 7)
       Gdip_DrawImage(GNew, pBitmap, 0, 0, Width, Height, 0, 0, Width, Height)
-      Gdip_SaveBitmapToFile(pBitmapNew, OutFile)
+      Gdip_SaveBitmapToFile(pBitmapNew, OutFile, Quality)
       If FileExist(OutFile)
         Result:=True
       Gdip_DisposeImage(pBitmap),	Gdip_DeleteGraphics(GNew), Gdip_DisposeImage(pBitmapNew)
@@ -947,4 +966,15 @@ AppendText(hEdit, ptrText) {
     SendMessage, 0x000E, 0, 0,, ahk_id %hEdit% ;WM_GETTEXTLENGTH
     SendMessage, 0x00B1, ErrorLevel, ErrorLevel,, ahk_id %hEdit% ;EM_SETSEL
     SendMessage, 0x00C2, False, ptrText,, ahk_id %hEdit% ;EM_REPLACESEL
+}
+
+ComboBoxGetHEDIT(HCBB) {
+   ; http://msdn.microsoft.com/en-us/library/bb775939(v=vs.85).aspx
+   Static SizeOfCBI := (4 * 10) + (A_PtrSize * 3)
+   Static OffHEDIT := (4 * 10) + A_PtrSize
+   VarSetCapacity(CBI, SizeOfCBI, 0)
+   NumPut(SizeOfCBI, CBI, 0, "UInt")
+   If DllCall("User32.dll\GetComboBoxInfo", "Ptr", HCBB, "Ptr", &CBI, "UInt")
+      Return NumGet(CBI, OffHEDIT, "UPtr")
+   Return False
 }
