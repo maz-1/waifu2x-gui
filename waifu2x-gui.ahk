@@ -136,8 +136,8 @@ If !FileExist(WPath "\" Waifu2x_Exe)
   exitapp
 }
 
-h_withlog:=350
-h_withoutlog:=240
+h_withlog:=353
+h_withoutlog:=243
 Gui,Main: Font, s8, %L_Font%
 Gui,Main:+HwndMainGuiHwnd
 ;-=-=-=-=-=-=-=-=-=
@@ -223,12 +223,12 @@ CtlColors.Attach(hFTypeList, "", "")
 ;-=-=-=-=-=-=-=-=-=
 ;Hotkey, IfWinActive, ahk_id %MainGuiHwnd%
 ;Hotkey, ^k, KillConverter
-Gui,Main:Add, Checkbox, x5 y202 vShowLog gToggleLog, %L_ShowLog%
+Gui,Main:Add, Checkbox, x5 y205 h15 vShowLog gToggleLog, %L_ShowLog%
 Gui,Main:Tab
 Gui,Main:Add, Button, x469 y160 w172 h39 hwndhBtnGo gProcess vProcessV, %L_Go%
 Gui,Main:Add, StatusBar,, %L_Ready%
 Gui,Main:Font, s7, Lucida Console
-Gui,Main:Add, Edit, x5 y222 w635 r10 vVerboseLog hwndhVLog ReadOnly
+Gui,Main:Add, Edit, x5 y225 w635 r10 vVerboseLog hwndhVLog ReadOnly
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 ;-=-=-=-=-=-=-=-=-=
 if FileExist(SettingsFile)
