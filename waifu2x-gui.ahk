@@ -12,7 +12,11 @@ WPath = %A_ScriptDir%
 Waifu2x_Exe = waifu2x-converter-cpp.exe
 I18nFile:=A_ScriptDir . "\i18n.ini"
 SettingsFile:=A_ScriptDir . "\settings.ini"
-
+;IniRead, Portable, %SettingsFile%, Main, portable, 1
+;If (portable = 0)
+;{
+;    SettingsFile:=A_AppData . "\waifu2x_settings.ini"
+;}
 SetWorkingDir %WPath%
 
 FTypeInit:="png,jpg,jpeg,jfif,tif,tiff,bmp,tga"
@@ -150,16 +154,16 @@ Gui,Main:Add, Tab2, x0 y0 w0 h0 -Wrap vVTab, OneTab
 Gui,Main:Tab, OneTab
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, Text, x5 y12 w60 Center, %L_InPath%
-Gui,Main:Add, Edit, HwndHInPath r1 vInPath x70 y10 h30 w530 gRevertInPathColor +E%WS_EX_ACCEPTFILES%, %fName%
+Gui,Main:Add, Edit, HwndHInPath r1 vInPath x70 y10 h30 w540 gRevertInPathColor +E%WS_EX_ACCEPTFILES%, %fName%
 CtlColors.Attach(HInPath, "", "")
-Gui,Main:add,Button, vInPathBtn gSelectInPath y9 w30 h23 x610 , ...
+Gui,Main:add,Button, vInPathBtn gSelectInPath y9 w30 h23 x620 , ...
 InPath_TT = %L_InPathTip%
 InPathBtn_TT = %L_InPathBtnTip%
 ;-=-=-=-=-=-=-=-=-=
 Gui,Main:Add, Text, x5 y47 w60 Center, %L_OutPath%
-Gui,Main:Add, Edit, HwndHOutPath r1 vOutPath x70 y45 h30 w530 gRevertOutPathColor +E%WS_EX_ACCEPTFILES%, %DirInit%
+Gui,Main:Add, Edit, HwndHOutPath r1 vOutPath x70 y45 h30 w540 gRevertOutPathColor +E%WS_EX_ACCEPTFILES%, %DirInit%
 CtlColors.Attach(HOutPath, "", "")
-Gui,Main:add,Button, gSelectOutPath y44 w30 h23 x610 , ...
+Gui,Main:add,Button, gSelectOutPath y44 w30 h23 x620 , ...
 OutPath_TT = %L_OutPathTip%
 ;-=-=-=-=-=-=-=-=-=
 ;BusyCur:=DllCall("LoadCursor","UInt",NULL,"Int",32514,"UInt") ;IDC_WAIT
@@ -187,48 +191,47 @@ Loop, Files, models\* ,D
 }
 Gui,Main:Add, DropDownList, x10 y170 w140 vOutModel Choose%Model_Default%, %Model_List% ;gSetDenoiseLevelRange
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, GroupBox, x160 y80 w145 h35, %L_Denoise_Level%
-Gui,Main:Add, Slider, hwndhdenoise x165 y95 w120 h18 vDenoiseLevel AltSubmit gSetSliderLabel Range1-3, 1
-Gui,Main:Add, Text, x285 y95 w10 h18 vCurDenoiseLevel Center, 1
+Gui,Main:Add, GroupBox, x160 y80 w155 h35, %L_Denoise_Level%
+Gui,Main:Add, Slider, hwndhdenoise x165 y95 w130 h18 vDenoiseLevel AltSubmit gSetSliderLabel Range1-3, 1
+Gui,Main:Add, Text, x295 y95 w10 h18 vCurDenoiseLevel Center, 1
 ;-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, GroupBox, x160 y155 w145 h44, %L_OutExt%
-Gui,Main:Add, DropDownList, x165 y170 w45 vOutExt gExtChanged hwndhExt Choose1, png|jpg|bmp|tiff
-;|webp
-Gui,Main:Add, Text, x210 y172 w45 h20 Right, %L_Quality%
-Gui,Main:Add, Combobox, vOutQuality x260 y170 w40 Choose2, 100|75
+Gui,Main:Add, GroupBox, x160 y155 w155 h44, %L_OutExt%
+Gui,Main:Add, DropDownList, x165 y170 w55 vOutExt gExtChanged hwndhExt Choose1, png|jpg|bmp|tiff|webp
+Gui,Main:Add, Text, x220 y172 w45 h20 Right, %L_Quality%
+Gui,Main:Add, Combobox, vOutQuality x270 y170 w40 Choose2, 100|75
 ;-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, GroupBox, x160 y115 w145 h40, %L_BlkSize%
-Gui,Main:Add, Edit, x165 y130 w135 h18 Number vBLKSize
+Gui,Main:Add, GroupBox, x160 y115 w155 h40, %L_BlkSize%
+Gui,Main:Add, Edit, x165 y130 w145 h18 Number vBLKSize
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, GroupBox, x310 y80 w155 h119, %L_ProcOpt%
-Gui,Main:Add, Checkbox, hwndhnogpu x315 y97 w140 h20 vDisableGPU, %L_DisableGPU%
-Gui,Main:Add, Checkbox, hwndhforceocl x315 y116 w145 h20 vForceOpenCL, %L_ForceOpenCL%
-Gui,Main:Add, Button, x314 y136 w147 h35 vSelProcInfoV hwndhBtnProcWin gProcInit, %L_AutoProc%
+Gui,Main:Add, GroupBox, x320 y80 w155 h119, %L_ProcOpt%
+Gui,Main:Add, Checkbox, hwndhnogpu x325 y97 w140 h20 vDisableGPU, %L_DisableGPU%
+Gui,Main:Add, Checkbox, hwndhforceocl x325 y116 w145 h20 vForceOpenCL, %L_ForceOpenCL%
+Gui,Main:Add, Button, x324 y136 w147 h35 vSelProcInfoV hwndhBtnProcWin gProcInit, %L_AutoProc%
 SelProcInfoV_TT:=L_SelProcInfo
 EnvGet, ProcessorCount, NUMBER_OF_PROCESSORS
-Gui,Main:Add, Text, x315 y177 w145 h20, %L_Threads%
-Gui,Main:Add, Edit, x390 y175 w70 h18 Number vThreads gThreadsCheck hwndHThreads, % ProcessorCount
+Gui,Main:Add, Text, x325 y177 w145 h20, %L_Threads%
+Gui,Main:Add, Edit, x400 y175 w70 h18 Number vThreads gThreadsCheck hwndHThreads, % ProcessorCount
 CtlColors.Attach(HThreads, "", "")
 Gui,Main:Add, UpDown, % "range1-" ProcessorCount, % ProcessorCount
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, GroupBox, x470 y80 w170 h37, %L_ScaleRatio%
-Gui,Main:Add, Edit, x475 y95 w130 h18 vScaleRatio gScaleRatioCheck hwndHScaleRatio, 2
+Gui,Main:Add, GroupBox, x480 y80 w170 h37, %L_ScaleRatio%
+Gui,Main:Add, Edit, x485 y95 w130 h18 vScaleRatio gScaleRatioCheck hwndHScaleRatio, 2
 Gui,Main:Add, UpDown, range1-50, 2
-Gui,Main:Add, Button, x610 y94 w25 h20 vScaleGenBtn gScaleGen, ...
+Gui,Main:Add, Button, x620 y94 w25 h20 vScaleGenBtn gScaleGen, ...
 ScaleGenBtn_TT = %L_ScaleGenTip%
 ;-=-=-=-=-=-=-=-=-=
-Gui,Main:Add, GroupBox, x470 y117 w170 h40, %L_ProcTheseTypes%
-Gui,Main:Add, Edit, x475 y133 w160 h20 vFTypeList gFTypeListCheck hwndhFTypeList, % FTypeInit
+Gui,Main:Add, GroupBox, x480 y117 w170 h40, %L_ProcTheseTypes%
+Gui,Main:Add, Edit, x485 y133 w160 h20 vFTypeList gFTypeListCheck hwndhFTypeList, % FTypeInit
 CtlColors.Attach(hFTypeList, "", "")
 ;-=-=-=-=-=-=-=-=-=
 ;Hotkey, IfWinActive, ahk_id %MainGuiHwnd%
 ;Hotkey, ^k, KillConverter
 Gui,Main:Add, Checkbox, x5 y205 h15 vShowLog gToggleLog, %L_ShowLog%
 Gui,Main:Tab
-Gui,Main:Add, Button, x469 y160 w172 h39 hwndhBtnGo gProcess vProcessV, %L_Go%
+Gui,Main:Add, Button, x479 y160 w172 h39 hwndhBtnGo gProcess vProcessV, %L_Go%
 Gui,Main:Add, StatusBar,, %L_Ready%
 Gui,Main:Font, s7, Lucida Console
-Gui,Main:Add, Edit, x5 y225 w635 r10 vVerboseLog hwndhVLog ReadOnly
+Gui,Main:Add, Edit, x5 y225 w645 r10 vVerboseLog hwndhVLog ReadOnly
 ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 ;-=-=-=-=-=-=-=-=-=
 if FileExist(SettingsFile)
@@ -247,7 +250,7 @@ if FileExist(SettingsFile)
     GuiControl, Main:Text, BLKSize, % BLKSize
   IniRead, OutExt, %SettingsFile%, Main, extension, png
     GuiControl, Main:ChooseString, OutExt, % OutExt
-    If (OutExt <> "jpg")
+    If (OutExt <> "jpg" and OutExt <> "webp")
       GuiControl, Main:Disable, OutQuality
   IniRead, OutQuality, %SettingsFile%, Main, quality, 75
     GuiControl, Main:Text, OutQuality, % OutQuality
@@ -424,7 +427,7 @@ Return
 
 ExtChanged:
 ControlGetText, CurrentExt,, ahk_id %hExt%
-If (CurrentExt = "jpg")
+If (CurrentExt = "jpg" || CurrentExt = "webp")
   GuiControl, Main:Enable, OutQuality
 Else
   GuiControl, Main:Disable, OutQuality
@@ -550,6 +553,7 @@ ControlSetText, , %L_Stop%, ahk_id %hBtnGo%
 GuiControl, Main:Disable, VTab
 ;-=-=-=-=-=-=-=-=-=
 Waifu2x_Path = "%WPath%\%Waifu2x_Exe%"
+Cwebp_Path = "%WPath%\utilities\cwebp.exe"
 Params =
 Loop 1 {
    Goto Case-ConvMode-%ConvMode%
@@ -591,8 +595,8 @@ If InStr( FileExist(InPath), "D" )
 {
   InPath:=RegExReplace(InPath, " *$", "\")
   InPath:=RegExReplace(InPath, "\\+", "\")
-  If (InPath=OutPath)
-    FilePrefix := "mai_"
+  ;If (InPath=OutPath)
+  ;  FilePrefix := "mai_"
   LoopState:=True
   IndexMin:=0
   Loop, Files, %InPath%*, F
@@ -608,7 +612,9 @@ If InStr( FileExist(InPath), "D" )
         GuiControl, Main:Text, VerboseLog, Parameters: %Params%`r`n
       }
       InFile=%InPath%\%A_LoopFileName%
-      Outfile=%OutPath%%FilePrefix%%Name_no_ext%.%OutExt%
+      Outfile=%OutPath%%Name_no_ext%.%OutExt%
+      if FileExist(Outfile)
+        Outfile=%OutPath%mai_%Name_no_ext%.%OutExt%
       Convert_File(InFile, Outfile, Params)
     }
   }
@@ -618,9 +624,11 @@ Else
 {
   SplitPath, InPath, , InPathDir, Ext, Name_no_ext
   InPathDir=%InPathDir%\
-  If (InPathDir=OutPath)
-    FilePrefix := "mai_"
-  Outfile=%OutPath%%FilePrefix%%Name_no_ext%.%OutExt%
+  ;If (InPathDir=OutPath)
+  ;  FilePrefix := "mai_"
+  Outfile=%OutPath%%Name_no_ext%.%OutExt%
+      if FileExist(Outfile)
+        Outfile=%OutPath%mai_%Name_no_ext%.%OutExt%
   GuiControl, Main:Text, VerboseLog, Parameters: %Params%`r`n
   Convert_File(InPath, Outfile, Params)
 }
@@ -804,16 +812,17 @@ Convert_File(InFile, Outfile, Params){
   Global ConverterPID
   Global L_SBarPrefix
   Global OutQuality
-  Params = %Params% -i "%InFile%" -o "%Outfile%"
+  SplitPath, Outfile,, OutDir,, OutNameNoExt
+  Params = %Params% -i "%InFile%" -o "%OutDir%\tmp_%OutNameNoExt%.png"
   SplitPath, InFile, InFileName
   SB_SetText(L_SBarPrefix . InFileName)
   GuiControlGet, LogEnabled, , ShowLog
   If (LogEnabled=True)
     StdOutStream( Waifu2x_Path . " " . Params, "DumpCmdOut", WPath, ConverterPID)
   Else
-    RunWait, %Waifu2x_Path% %Params%, %WPath%, Hide, ConverterPID
-  Convert_Format(Outfile . ".png", OutFile, OutQuality)
-  FileDelete, %Outfile%.png
+    RunWait, "%Waifu2x_Path%" %Params%, %WPath%, Hide, ConverterPID
+  If (Convert_Format(OutDir . "\tmp_" . OutNameNoExt . ".png", OutFile, OutQuality) = True)
+    FileDelete, %OutDir%\tmp_%OutNameNoExt%.png
 }
 
 DumpCmdOut(TxtNew, TxtIndex)
@@ -830,28 +839,42 @@ DumpCmdOut(TxtNew, TxtIndex)
 
 Convert_Format(InFile, OutFile, Quality)
 {
+  Global Cwebp_Path
   Result:=False
-  If (SubStr(InFile, -2)<>SubStr(OutFile, -2))
+  SplitPath, InFile,,, InExt
+  SplitPath, OutFile,,, OutExt
+  If (InExt<>OutExt)
   {
-    pBitmap := Gdip_CreateBitmapFromFile(InFile)
-    If (pBitmap<>0)
+    If (OutExt = "webp")
     {
-      Width := Gdip_GetImageWidth(pBitmap), Height := Gdip_GetImageHeight(pBitmap)
-      pBitmapNew := Gdip_CreateBitmap(Width, Height)
-      GNew := Gdip_GraphicsFromImage(pBitmapNew),	Gdip_SetInterpolationMode(GNew, 7)
-      Gdip_DrawImage(GNew, pBitmap, 0, 0, Width, Height, 0, 0, Width, Height)
-      Gdip_SaveBitmapToFile(pBitmapNew, OutFile, Quality)
-      If FileExist(OutFile)
+      RunWait, %Cwebp_Path% -q %Quality% "%InFile%" -o "%OutFile%", %WPath% ,Hide
+      If (ErrorLevel=0)
         Result:=True
-      Gdip_DisposeImage(pBitmap),	Gdip_DeleteGraphics(GNew), Gdip_DisposeImage(pBitmapNew)
+    }
+    Else
+    {
+      pBitmap := Gdip_CreateBitmapFromFile(InFile)
+      If (pBitmap<>0)
+      {
+        Width := Gdip_GetImageWidth(pBitmap), Height := Gdip_GetImageHeight(pBitmap)
+        pBitmapNew := Gdip_CreateBitmap(Width, Height)
+        GNew := Gdip_GraphicsFromImage(pBitmapNew),	Gdip_SetInterpolationMode(GNew, 7)
+        Gdip_DrawImage(GNew, pBitmap, 0, 0, Width, Height, 0, 0, Width, Height)
+        Gdip_SaveBitmapToFile(pBitmapNew, OutFile, Quality)
+        If FileExist(OutFile)
+          Result:=True
+        Else
+          Result:=False
+        Gdip_DisposeImage(pBitmap),	Gdip_DeleteGraphics(GNew), Gdip_DisposeImage(pBitmapNew)
+      }
     }
   }
   Else
   {
     FileMove, %InFile%, %OutFile%
-    Result:=ErrorLevel
-	}
-	Return Result
+    Result:=False
+  }
+  Return Result
 }
 
 ProcsSetText(ProcType, ProcName)

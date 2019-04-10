@@ -1,6 +1,8 @@
 # Waifu2x GUI
 waifu2x-converter-cpp GUI written in Autohotkey
-![ScreenShot](https://raw.githubusercontent.com/maz-1/waifu2x-gui/master/screenshot.jpg)
+![ScreenShot](https://raw.githubusercontent.com/maz-1/waifu2x-gui/master/screenshot1.png)
+
+![ScreenShot](https://raw.githubusercontent.com/maz-1/waifu2x-gui/master/screenshot2.png)
 
 # Features
 * Multilanguage
@@ -12,7 +14,7 @@ waifu2x-converter-cpp GUI written in Autohotkey
 
 # Guide
 * Compile waifu2x-gui.ahk to waifu2x-gui.exe with ahk2exe
-* Download waifu2x-converter-cpp v5.2 64bit form here: https://github.com/DeadSix27/waifu2x-converter-cpp/releases/tag/v5.2 . Extract all files to where waifu2x-gui.exe is and organize models directories as following:
+* Download waifu2x-converter-cpp v5.2.4 64bit form here: https://github.com/DeadSix27/waifu2x-converter-cpp/releases/tag/v5.2.4 . Extract all files to where waifu2x-gui.exe is and organize models directories as following:
 
 ![ScreenShot](https://raw.githubusercontent.com/maz-1/waifu2x-gui/master/Pay_attention.jpg)
 
